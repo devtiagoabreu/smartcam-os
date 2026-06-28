@@ -180,6 +180,8 @@ void setup() {
     setupDashboard();
     delay(250);
 
+    networkService.connectOrFallback();
+
     g_systemState = SystemState::Ready;
     loggerService.info("System", "SmartCam OS ready — all systems initialized");
 }

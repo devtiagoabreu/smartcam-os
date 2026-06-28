@@ -34,6 +34,9 @@ public:
     void handleTrackingInfo();
     void handleTrackingCommand();
     void handleApiInfo();
+    void handleWifiConfig();
+    void handleWifiScan();
+    void handleWifiStatus();
 
 private:
     bool m_running;

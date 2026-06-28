@@ -105,7 +105,25 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(
   </script>
   </div>
 </div>
-<div id="page-settings" style="display:none"><div class="card"><h3>Settings</h3><p>Coming soon.</p></div></div>
+<div id="page-settings" style="display:none">
+  <div class="card"><h3>WiFi Configuration</h3>
+    <p>Status: <span id="wifi-status">Loading...</span></p>
+    <div style="margin-top:1rem">
+      <label>Select Network:</label>
+      <select id="wifi-networks" style="width:100%;padding:.5rem;margin:.25rem 0 1rem;background:#16213e;color:#e0e0e0;border:1px solid #333;border-radius:4px">
+        <option value="">-- Scan for networks --</option>
+      </select>
+      <label>Password:</label>
+      <input type="password" id="wifi-password" placeholder="WPA2 password (leave blank for open)" style="width:100%;padding:.5rem;margin:.25rem 0 1rem;background:#16213e;color:#e0e0e0;border:1px solid #333;border-radius:4px">
+      <button id="wifi-scan-btn" onclick="wifiScan()" style="margin-right:.5rem">Scan</button>
+      <button id="wifi-connect-btn" onclick="wifiConnect()" style="background:var(--success)">Save &amp; Reboot</button>
+    </div>
+    <div id="wifi-msg" style="margin-top:.5rem;font-size:.9rem"></div>
+  </div>
+  <div class="card"><h3>System</h3>
+    <button onclick="fetch('/api/wifi/status').then(r=>r.json()).then(d=>document.getElementById('wifi-status').textContent=d.mode+' ('+d.ip+')')" style="margin-right:.5rem">Refresh Status</button>
+  </div>
+</div>
 </main>
 </div>
 <script src="/app.js"></script>
@@ -202,6 +220,15 @@ document.querySelectorAll('#content > div').forEach(d=>d.style.display='none');
 const el = document.getElementById('page-'+page);
 if (el) el.style.display='block';
 if (page==='camera') document.getElementById('cam-stream').src='/camera/stream';
+if (page==='settings') { wifiScan(); wifiStatus(); }
+}
+
+async function wifiStatus() {
+try {
+const r = await fetch('/api/wifi/status');
+const d = await r.json();
+document.getElementById('wifi-status').textContent = d.mode + ' (' + d.ip + (d.ssid ? ', ' + d.ssid : '') + ')';
+} catch(e) {}
 }
 document.querySelectorAll('#main-nav a').forEach(function(a){
 a.addEventListener('click',function(e){
@@ -229,6 +256,43 @@ try {
 await fetch(API + '/motion', {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
 loadMotionInfo();
 } catch(e) { console.error(e); }
+}
+
+async function wifiScan() {
+const btn = document.getElementById('wifi-scan-btn');
+btn.textContent='Scanning...'; btn.disabled=true;
+document.getElementById('wifi-msg').textContent='';
+try {
+const r = await fetch('/api/wifi/scan');
+const d = await r.json();
+const sel = document.getElementById('wifi-networks');
+sel.innerHTML = '<option value="">-- Select network --</option>';
+if (d.networks && d.networks.length>0) {
+d.networks.forEach(function(n){
+const opt = document.createElement('option');
+opt.value = n.ssid;
+opt.textContent = n.ssid + ' (' + n.rssi + ' dBm)' + (n.open ? ' [open]' : '');
+sel.appendChild(opt);
+});
+document.getElementById('wifi-msg').textContent = d.networks.length + ' networks found';
+} else {
+document.getElementById('wifi-msg').textContent = 'No networks found';
+}} catch(e) {
+document.getElementById('wifi-msg').textContent = 'Scan failed';
+}
+btn.textContent='Scan'; btn.disabled=false;
+}
+
+async function wifiConnect() {
+const ssid = document.getElementById('wifi-networks').value;
+const pw = document.getElementById('wifi-password').value;
+if (!ssid) { document.getElementById('wifi-msg').textContent='Select a network'; return; }
+document.getElementById('wifi-msg').textContent='Saving and rebooting...';
+try {
+const body = 'ssid='+encodeURIComponent(ssid)+'&password='+encodeURIComponent(pw);
+await fetch('/api/wifi/config', {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+} catch(e) { document.getElementById('wifi-msg').textContent='Config saved, rebooting...'; }
+setTimeout(function(){ window.location.reload(); }, 3000);
 }
 
 function refresh() { loadSystemInfo(); loadNetworkInfo(); loadCameraInfo(); loadMotionInfo(); }
@@ -330,6 +394,18 @@ static void handleApiInfoRoute() {
     if (s_instance) s_instance->handleApiInfo();
 }
 
+static void handleWifiConfigRoute() {
+    if (s_instance) s_instance->handleWifiConfig();
+}
+
+static void handleWifiScanRoute() {
+    if (s_instance) s_instance->handleWifiScan();
+}
+
+static void handleWifiStatusRoute() {
+    if (s_instance) s_instance->handleWifiStatus();
+}
+
 void DashboardService::registerRoutes() {
     apiServer.registerEndpoint("GET", "/", handleRootRoute);
     apiServer.registerEndpoint("GET", "/index.html", handleRootRoute);
@@ -347,6 +423,9 @@ void DashboardService::registerRoutes() {
     apiServer.registerEndpoint("GET", "/tracking", handleTrackingInfoRoute);
     apiServer.registerEndpoint("POST", "/tracking", handleTrackingCommandRoute);
     apiServer.registerEndpoint("GET", "/api/info", handleApiInfoRoute);
+    apiServer.registerEndpoint("POST", "/api/wifi/config", handleWifiConfigRoute);
+    apiServer.registerEndpoint("GET", "/api/wifi/scan", handleWifiScanRoute);
+    apiServer.registerEndpoint("GET", "/api/wifi/status", handleWifiStatusRoute);
 }
 
 void DashboardService::handleRoot() {
@@ -610,8 +689,74 @@ void DashboardService::handleApiInfo() {
         "{\"status\":\"ok\",\"endpoints\":["
         "\"/\",\"/index.html\",\"/style.css\",\"/app.js\","
         "\"/system\",\"/network\",\"/logger\",\"/camera\","
-        "\"/camera/stream\",\"/motion\",\"/vision\",\"/detect\",\"/tracking\",\"/tracking\"(POST),\"/api/info\""
+        "\"/camera/stream\",\"/motion\",\"/vision\",\"/detect\",\"/tracking\",\"/tracking\"(POST),"
+        "\"/api/wifi/config\"(POST),\"/api/wifi/scan\",\"/api/wifi/status\",\"/api/info\""
         "]}");
+}
+
+void DashboardService::handleWifiConfig() {
+    String ssid = apiServer.getArg("ssid");
+    String password = apiServer.getArg("password");
+
+    if (ssid.length() == 0) {
+        apiServer.sendError(400, "Missing ssid parameter");
+        return;
+    }
+
+    networkService.saveCredentials(ssid.c_str(), password.c_str());
+    apiServer.sendJson(200, "{\"status\":\"ok\",\"message\":\"Credentials saved, rebooting...\"}");
+
+    delay(500);
+    ESP.restart();
+}
+
+void DashboardService::handleWifiScan() {
+    // Switch to AP+STA so AP clients stay connected during scan
+    bool wasAp = (WiFi.getMode() == WIFI_MODE_AP);
+    if (wasAp) {
+        WiFi.mode(WIFI_AP_STA);
+        delay(100);
+    }
+    int count = WiFi.scanNetworks();
+    if (wasAp) {
+        WiFi.mode(WIFI_AP);
+    }
+    char buf[1024];
+    int pos = snprintf(buf, sizeof(buf), "{\"status\":\"ok\",\"networks\":[");
+
+    for (int i = 0; i < count && pos < (int)sizeof(buf) - 64; i++) {
+        if (i > 0) pos += snprintf(buf + pos, sizeof(buf) - pos, ",");
+        String ssid = WiFi.SSID(i);
+        int rssi = WiFi.RSSI(i);
+        uint8_t encryption = WiFi.encryptionType(i);
+        pos += snprintf(buf + pos, sizeof(buf) - pos,
+            "{\"ssid\":\"%s\",\"rssi\":%d,\"open\":%s}",
+            ssid.c_str(), rssi, encryption == WIFI_AUTH_OPEN ? "true" : "false");
+    }
+
+    snprintf(buf + pos, sizeof(buf) - pos, "]}");
+    apiServer.sendJson(200, buf);
+}
+
+void DashboardService::handleWifiStatus() {
+    char buf[256];
+    if (networkService.isFallbackMode()) {
+        snprintf(buf, sizeof(buf),
+            "{\"status\":\"ok\",\"mode\":\"ap\",\"ip\":\"192.168.4.1\","
+            "\"ssid\":\"SmartCamOS\",\"connected\":false,\"configured\":%s}",
+            WiFi.SSID().length() > 0 ? "true" : "false");
+    } else if (WiFi.status() == WL_CONNECTED) {
+        snprintf(buf, sizeof(buf),
+            "{\"status\":\"ok\",\"mode\":\"sta\",\"ip\":\"%s\","
+            "\"ssid\":\"%s\",\"rssi\":%d,\"connected\":true}",
+            WiFi.localIP().toString().c_str(),
+            WiFi.SSID().c_str(), WiFi.RSSI());
+    } else {
+        snprintf(buf, sizeof(buf),
+            "{\"status\":\"ok\",\"mode\":\"sta\",\"ip\":\"0.0.0.0\","
+            "\"ssid\":\"\",\"rssi\":0,\"connected\":false}");
+    }
+    apiServer.sendJson(200, buf);
 }
 
 void DashboardService::handleSystemInfo() {
