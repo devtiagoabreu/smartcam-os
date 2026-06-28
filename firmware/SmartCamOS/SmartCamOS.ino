@@ -205,9 +205,9 @@ void setupCamera()   {
 void setupMotion()   {
     motionEngine.begin();
     AxisConfig panAxis;
-    panAxis.stepPin = 39;
-    panAxis.dirPin = 40;
-    panAxis.enablePin = 41;
+    panAxis.stepPin = 46;
+    panAxis.dirPin = 45;
+    panAxis.enablePin = 31;
     panAxis.homePin = -1;
     panAxis.stepsPerDegree = 16.0f * 200.0f / 360.0f;
     panAxis.maxSpeed = 5000.0f;
