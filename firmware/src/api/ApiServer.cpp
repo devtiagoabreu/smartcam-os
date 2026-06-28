@@ -138,3 +138,13 @@ bool ApiServer::endStream() {
     m_streaming = false;
     return true;
 }
+
+const char* ApiServer::getArg(const char* name) const {
+    if (!s_webServer || !name) return nullptr;
+    return s_webServer->arg(name).c_str();
+}
+
+bool ApiServer::hasArg(const char* name) const {
+    if (!s_webServer || !name) return false;
+    return s_webServer->hasArg(name);
+}

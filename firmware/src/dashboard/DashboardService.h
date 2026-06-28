@@ -30,6 +30,8 @@ private:
     void handleLogger();
     void handleCameraInfo();
     void handleCameraStream();
+    void handleMotionInfo();
+    void handleMotionCommand();
     void handleApiInfo();
 
 public:

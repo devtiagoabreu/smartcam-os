@@ -3,6 +3,7 @@
 #include "../network/NetworkService.h"
 #include "../logger/LoggerService.h"
 #include "../core/camera/CameraEngine.h"
+#include "../core/motion/MotionEngine.h"
 #include <WiFi.h>
 #include <esp_heap_caps.h>
 #include <esp_camera.h>
@@ -13,6 +14,7 @@ extern ApiServer apiServer;
 extern NetworkService networkService;
 extern LoggerService loggerService;
 extern CameraEngine cameraEngine;
+extern MotionEngine motionEngine;
 
 // ============================================================
 // Embedded Web Files (PROGMEM)
@@ -55,7 +57,21 @@ static const char INDEX_HTML[] PROGMEM = R"rawliteral(
 <img id="cam-stream" src="" style="width:100%;max-width:640px;border-radius:4px">
 </div>
 </div>
-<div id="page-motion" style="display:none"><div class="card"><h3>Motion Control</h3><p>Coming soon.</p></div></div>
+<div id="page-motion" style="display:none">
+<div class="card"><h3>Axis Control</h3>
+<p>Position: <span id="mot-pos">0</span></p>
+<p>Speed: <span id="mot-speed">0</span></p>
+<p>Homed: <span id="mot-homed">-</span></p>
+<p>Moving: <span id="mot-moving">-</span></p>
+<p>Enabled: <span id="mot-enabled">-</span></p>
+<div style="margin-top:1rem">
+<button onclick="sendMotion('home',0)">Home</button>
+<button onclick="sendMotion('move',0,100)">+100</button>
+<button onclick="sendMotion('move',0,-100)">-100</button>
+<button onclick="sendMotion('stop',0)">Stop</button>
+<button onclick="sendMotion('enable',0,1)">Enable</button>
+<button onclick="sendMotion('enable',0,0)">Disable</button>
+</div></div></div>
 <div id="page-tracking" style="display:none"><div class="card"><h3>Target Tracking</h3><p>Coming soon.</p></div></div>
 <div id="page-settings" style="display:none"><div class="card"><h3>Settings</h3><p>Coming soon.</p></div></div>
 </main>
@@ -161,7 +177,29 @@ e.preventDefault(); navigate(this.dataset.page);
 });
 });
 
-function refresh() { loadSystemInfo(); loadNetworkInfo(); loadCameraInfo(); }
+async function loadMotionInfo() {
+try {
+const r = await fetch(API + '/motion');
+const d = await r.json();
+if (d.axes && d.axes.length>0) {
+const a = d.axes[0];
+document.getElementById('mot-pos').textContent = a.position;
+document.getElementById('mot-speed').textContent = a.speed.toFixed(1);
+document.getElementById('mot-homed').textContent = a.homed;
+document.getElementById('mot-moving').textContent = a.moving;
+document.getElementById('mot-enabled').textContent = a.enabled;
+}} catch(e) {}
+}
+
+async function sendMotion(cmd, axis, val) {
+const body = 'cmd='+cmd+'&axis='+axis+(val!==undefined?'&value='+val:'');
+try {
+await fetch(API + '/motion', {method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});
+loadMotionInfo();
+} catch(e) { console.error(e); }
+}
+
+function refresh() { loadSystemInfo(); loadNetworkInfo(); loadCameraInfo(); loadMotionInfo(); }
 setInterval(refresh, 3000);
 document.addEventListener('DOMContentLoaded', refresh);
 )rawliteral";
@@ -232,6 +270,14 @@ static void handleCameraStreamRoute() {
     if (s_instance) s_instance->handleCameraStream();
 }
 
+static void handleMotionInfoRoute() {
+    if (s_instance) s_instance->handleMotionInfo();
+}
+
+static void handleMotionCommandRoute() {
+    if (s_instance) s_instance->handleMotionCommand();
+}
+
 static void handleApiInfoRoute() {
     if (s_instance) s_instance->handleApiInfo();
 }
@@ -246,6 +292,8 @@ void DashboardService::registerRoutes() {
     apiServer.registerEndpoint("GET", "/logger", handleLoggerRoute);
     apiServer.registerEndpoint("GET", "/camera", handleCameraInfoRoute);
     apiServer.registerEndpoint("GET", "/camera/stream", handleCameraStreamRoute);
+    apiServer.registerEndpoint("GET", "/motion", handleMotionInfoRoute);
+    apiServer.registerEndpoint("POST", "/motion", handleMotionCommandRoute);
     apiServer.registerEndpoint("GET", "/api/info", handleApiInfoRoute);
 }
 
@@ -339,6 +387,55 @@ void DashboardService::handleCameraInfo() {
     apiServer.sendJson(200, buf);
 }
 
+void DashboardService::handleMotionInfo() {
+    char buf[512];
+    int count = motionEngine.getAxisCount();
+    int pos = snprintf(buf, sizeof(buf), "{\"status\":\"ok\",\"axes\":[");
+
+    for (int i = 0; i < count && pos < (int)sizeof(buf) - 128; i++) {
+        if (i > 0) pos += snprintf(buf + pos, sizeof(buf) - pos, ",");
+        AxisState s = motionEngine.getAxisState(i);
+        pos += snprintf(buf + pos, sizeof(buf) - pos,
+            "{\"index\":%d,\"position\":%ld,\"speed\":%.1f,"
+            "\"homed\":%s,\"moving\":%s,\"enabled\":%s}",
+            i, s.currentPosition, s.currentSpeed,
+            s.isHomed ? "true" : "false",
+            s.isMoving ? "true" : "false",
+            s.isEnabled ? "true" : "false");
+    }
+
+    snprintf(buf + pos, sizeof(buf) - pos, "]}");
+    apiServer.sendJson(200, buf);
+}
+
+void DashboardService::handleMotionCommand() {
+    const char* cmd = apiServer.getArg("cmd");
+    if (!cmd) {
+        apiServer.sendError(400, "Missing cmd parameter");
+        return;
+    }
+
+    int axis = atoi(apiServer.getArg("axis"));
+
+    if (strcmp(cmd, "enable") == 0) {
+        bool on = strcmp(apiServer.getArg("value"), "1") == 0;
+        apiServer.sendJson(200, motionEngine.enableAxis(axis, on)
+            ? "{\"status\":\"ok\"}" : "{\"status\":\"error\"}");
+    } else if (strcmp(cmd, "move") == 0) {
+        long steps = atol(apiServer.getArg("value"));
+        apiServer.sendJson(200, motionEngine.moveRelative(axis, steps)
+            ? "{\"status\":\"ok\"}" : "{\"status\":\"error\"}");
+    } else if (strcmp(cmd, "stop") == 0) {
+        apiServer.sendJson(200, motionEngine.stopAxis(axis)
+            ? "{\"status\":\"ok\"}" : "{\"status\":\"error\"}");
+    } else if (strcmp(cmd, "home") == 0) {
+        apiServer.sendJson(200, motionEngine.homeAxis(axis)
+            ? "{\"status\":\"ok\"}" : "{\"status\":\"error\"}");
+    } else {
+        apiServer.sendError(400, "Unknown command");
+    }
+}
+
 void DashboardService::handleCameraStream() {
     if (!cameraEngine.isInitialized()) {
         apiServer.sendError(503, "Camera not initialized");
@@ -381,7 +478,7 @@ void DashboardService::handleApiInfo() {
         "{\"status\":\"ok\",\"endpoints\":["
         "\"/\",\"/index.html\",\"/style.css\",\"/app.js\","
         "\"/system\",\"/network\",\"/logger\",\"/camera\","
-        "\"/camera/stream\",\"/api/info\""
+        "\"/camera/stream\",\"/motion\",\"/api/info\""
         "]}");
 }
 

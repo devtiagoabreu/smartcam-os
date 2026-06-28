@@ -29,6 +29,10 @@ public:
     bool streamChunk(const uint8_t* data, size_t len);
     bool endStream();
 
+    // HTTP request helpers
+    const char* getArg(const char* name) const;
+    bool hasArg(const char* name) const;
+
 private:
     int m_port;
     bool m_running;

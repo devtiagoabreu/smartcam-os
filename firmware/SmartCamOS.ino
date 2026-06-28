@@ -15,6 +15,7 @@
  * Sprint 7: Camera Engine — OV2640 init, capture, JPEG config.
  * Sprint 8: MJPEG Streaming — /camera/stream endpoint.
  * Sprint 9: Motion Engine — DM556D driver, STEP/DIR, HOME, STOP.
+ * Sprint 10: Camera × Motor integration — /motion API, web controls.
  */
 
 #include <Arduino.h>
@@ -129,7 +130,7 @@ void setup() {
     Serial.begin(115200);
     delay(100);
     Serial.println();
-    Serial.println(F("SmartCam OS v0.9.0 Sprint 9 - Motion Engine"));
+    Serial.println(F("SmartCam OS v0.10.0 Sprint 10 - Camera x Motor"));
     Serial.println(F("Platform: ESP32-S3 / T-SIMCAM v1.6"));
 
     g_systemState = SystemState::Init;
