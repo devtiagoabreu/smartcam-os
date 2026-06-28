@@ -28,22 +28,22 @@
 // ============================================================
 // SDK Interfaces
 // ============================================================
-#include "../sdk/interfaces/SmartCamObject.h"
-#include "../sdk/interfaces/SmartCamModule.h"
-#include "../sdk/interfaces/SmartCamService.h"
-#include "../sdk/interfaces/SmartCamApp.h"
-#include "../sdk/interfaces/Event.h"
-#include "../sdk/interfaces/IEventListener.h"
-#include "../sdk/interfaces/IDetector.h"
-#include "../sdk/interfaces/IMotionController.h"
-#include "../sdk/interfaces/IFrameProcessor.h"
-#include "../sdk/interfaces/ITrackingStrategy.h"
+#include "sdk/interfaces/SmartCamObject.h"
+#include "sdk/interfaces/SmartCamModule.h"
+#include "sdk/interfaces/SmartCamService.h"
+#include "sdk/interfaces/SmartCamApp.h"
+#include "sdk/interfaces/Event.h"
+#include "sdk/interfaces/IEventListener.h"
+#include "sdk/interfaces/IDetector.h"
+#include "sdk/interfaces/IMotionController.h"
+#include "sdk/interfaces/IFrameProcessor.h"
+#include "sdk/interfaces/ITrackingStrategy.h"
 
 // ============================================================
 // SDK Core
 // ============================================================
-#include "../sdk/core/EventBus.h"
-#include "../sdk/core/SmartCamAPI.h"
+#include "sdk/core/EventBus.h"
+#include "sdk/core/SmartCamAPI.h"
 
 // ============================================================
 // Firmware Utils

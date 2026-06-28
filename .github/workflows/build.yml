@@ -26,4 +26,4 @@ jobs:
           arduino-cli lib install "ArduinoJson"
       - name: Build firmware
         run: |
-          arduino-cli compile --fqbn esp32:esp32:esp32s3 firmware/
+          arduino-cli compile --fqbn esp32:esp32:esp32s3 firmware/SmartCamOS/

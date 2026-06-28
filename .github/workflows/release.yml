@@ -20,7 +20,7 @@ jobs:
           arduino-cli core install esp32:esp32
       - name: Build release binary
         run: |
-          arduino-cli compile --fqbn esp32:esp32:esp32s3 --output-dir release firmware/
+          arduino-cli compile --fqbn esp32:esp32:esp32s3 --output-dir release firmware/SmartCamOS/
       - name: Package release assets
         run: |
           mkdir -p release_assets
