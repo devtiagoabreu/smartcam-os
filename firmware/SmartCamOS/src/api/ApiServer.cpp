@@ -119,6 +119,11 @@ void ApiServer::registerSystemEndpoints() {
     if (!s_webServer) return;
 }
 
+bool ApiServer::streamClientConnected() const {
+    if (!s_webServer) return false;
+    return s_webServer->client().connected();
+}
+
 bool ApiServer::beginStream(const char* contentType) {
     if (!s_webServer || m_streaming) return false;
     m_streaming = true;

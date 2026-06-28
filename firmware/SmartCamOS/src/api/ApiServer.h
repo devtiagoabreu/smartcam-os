@@ -32,6 +32,7 @@ public:
     // HTTP request helpers
     String getArg(const char* name) const;
     bool hasArg(const char* name) const;
+    bool streamClientConnected() const;
 
 private:
     int m_port;

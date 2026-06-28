@@ -422,12 +422,14 @@ document.querySelectorAll('#sidebar nav a').forEach(function(l){l.classList.remo
 var link=document.querySelector('#sidebar nav a[data-page="'+page+'"]');
 if (link) link.classList.add('active');
 document.querySelectorAll('#content > div[id^="page-"]').forEach(function(d){d.style.display='none';});
+var cs=document.getElementById('cam-stream');if(cs)cs.src='';
+var ts=document.getElementById('track-stream');if(ts)ts.src='';
 var el=document.getElementById('page-'+page);
 if (el) el.style.display='block';
 var tk='page_'+page;
 document.getElementById('page-title').textContent=_(tk);
-if (page==='camera'){var img=document.getElementById('cam-stream');if(img)img.src='/camera/stream?'+Date.now();}
-if (page==='tracking'){var img=document.getElementById('track-stream');if(img)img.src='/camera/stream?'+Date.now();loadDetections();}
+if (page==='camera'){setTimeout(function(){var img=document.getElementById('cam-stream');if(img)img.src='/camera/stream?'+Date.now();},100);}
+if (page==='tracking'){setTimeout(function(){var img=document.getElementById('track-stream');if(img)img.src='/camera/stream?'+Date.now();loadDetections();},100);}
 if (page==='settings'){wifiStatus();wifiScan();}
 }
 
@@ -918,7 +920,7 @@ void DashboardService::handleCameraStream() {
     if (!apiServer.beginStream(header)) return;
 
     unsigned long startTime = millis();
-    while (millis() - startTime < 60000) { // 60s max stream
+    while (millis() - startTime < 300000 && apiServer.streamClientConnected()) {
         camera_fb_t* fb = esp_camera_fb_get();
         if (!fb) {
             delay(10);
