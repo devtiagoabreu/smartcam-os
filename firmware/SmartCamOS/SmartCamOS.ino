@@ -157,29 +157,38 @@ void setup() {
 
     g_systemState = SystemState::Init;
 
+    Serial.println("[DIAG] Calling setupLogger...");
     setupLogger();
     loggerService.info("System", "Logger service ready");
     delay(250);
 
+    Serial.println("[DIAG] Calling setupStorage/Config/Core...");
     setupStorage();
     setupConfig();
     setupCore();
     delay(250);
+    Serial.println("[DIAG] Calling setupNetwork...");
     setupNetwork();
+    Serial.println("[DIAG] Calling setupCamera...");
     setupCamera();
+    Serial.println("[DIAG] Calling setupVision...");
     setupVision();
     delay(250);
+    Serial.println("[DIAG] Calling setupMotion...");
     setupMotion();
     delay(250);
+    Serial.println("[DIAG] Calling setupTracking/AI/Behavior/App...");
     setupTracking();
     setupAI();
     setupBehavior();
     setupApp();
     delay(250);
+    Serial.println("[DIAG] Calling setupAPI/Dashboard...");
     setupAPI();
     setupDashboard();
     delay(250);
 
+    Serial.println("[DIAG] Setup complete!");
     g_systemState = SystemState::Ready;
     loggerService.info("System", "SmartCam OS ready — all systems initialized");
 }
