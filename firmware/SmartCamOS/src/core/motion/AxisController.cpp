@@ -123,7 +123,11 @@ bool AxisController::enable(bool on) {
     if (m_config.enablePin >= 0) {
         digitalWrite(m_config.enablePin, on ? LOW : HIGH);
     }
-    // Timer start disabled for TG1WDT isolation
+    if (on) {
+        startTimerPeriodic();
+    } else {
+        stop();
+    }
     return true;
 }
 
@@ -226,7 +230,9 @@ void AxisController::onTimer() {
 bool AxisController::attachTimer(AxisController* axis) {
     if (!axis || s_instanceCount >= 8) return false;
     s_activeInstances[s_instanceCount++] = axis;
-    // axis->startTimer();  // DISABLED - isolating TG1WDT crash
+    if (!s_stepTimer) {
+        axis->startTimer();
+    }
     return true;
 }
 

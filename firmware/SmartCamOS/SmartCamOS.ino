@@ -1,6 +1,6 @@
 /*
  * SmartCam OS — Embedded Computer Vision Platform
- * Hardware: LilyGO T-SIMCAM ESP32-S3 V1.6
+ * Hardware: LilyGO T-SIMCAM ESP32-S3 V1.3
  * Framework: Arduino ESP32
  *
  * This is the entry point for the SmartCam Platform firmware.
@@ -222,9 +222,9 @@ void setupCamera()   {
 void setupMotion()   {
     motionEngine.begin();
     AxisConfig panAxis;
-    panAxis.stepPin = 21;     // Grove SCL
-    panAxis.dirPin = 31;      // Grove SDA
-    panAxis.enablePin = -1;   // No enable pin (tie DM556D ENA+ to GND)
+    panAxis.stepPin = 21;      // Grove SCL (mPCIe_LED, safe)
+    panAxis.dirPin = 48;       // mPCIe_PWR (lateral connector, safe)
+    panAxis.enablePin = -1;    // No enable pin (tie DM556D ENA+ to GND)
     panAxis.homePin = -1;
     panAxis.stepsPerDegree = 16.0f * 200.0f / 360.0f;
     panAxis.maxSpeed = 5000.0f;

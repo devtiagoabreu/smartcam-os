@@ -7,7 +7,7 @@
 
 struct CameraPins {
     int pwdn = -1;
-    int reset = -1;
+    int reset = 18;
     int xclk = 14;
     int siod = 4;
     int sioc = 5;
