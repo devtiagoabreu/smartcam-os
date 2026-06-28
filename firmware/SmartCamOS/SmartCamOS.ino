@@ -213,8 +213,7 @@ void setupCore()     { /* Core scheduler and state manager - Sprint 3 */ }
 void setupCamera()   {
     cameraEngine.setPins(CameraPins());
     if (cameraEngine.begin()) {
-        cameraEngine.startStream();
-        loggerService.info("Camera", "Camera initialized and streaming");
+        loggerService.info("Camera", "Camera initialized (streaming disabled — S3 driver queue bug)");
     } else {
         loggerService.warning("Camera", "Camera init failed — check pinout or power");
     }
@@ -298,11 +297,11 @@ void setupConfig()   { configManager.init(); }
 void setupDashboard(){ dashboardService.init(); }
 
 void loopCore()     { delay(5); }
-void loopCamera()   { cameraEngine.update(); }
-void loopVision()   { visionEngine.update(); }
-void loopTracking() { trackingEngine.update(); }
-void loopAI()       { detectionEngine.update(); }
-void loopApp()     { personTracker.update(); }
+void loopCamera()   { /* DISABLED: S3 driver queue NULL bug */ }
+void loopVision()   { /* DISABLED: needs camera */ }
+void loopTracking() { /* DISABLED: needs vision */ }
+void loopAI()       { /* DISABLED: needs camera */ }
+void loopApp()     { /* DISABLED: needs tracking */ }
 void loopMotion()   { motionEngine.update(); }
 void loopBehavior() { behaviorEngine.update(); }
 void loopNetwork()  { networkService.tick(); }

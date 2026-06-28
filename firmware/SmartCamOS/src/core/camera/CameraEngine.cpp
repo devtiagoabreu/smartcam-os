@@ -81,16 +81,6 @@ bool CameraEngine::begin() {
 
     m_initialized = true;
     s_instance = this;
-
-    // Test: capture one frame immediately after init
-    camera_fb_t* fb = esp_camera_fb_get();
-    if (fb) {
-        ESP_LOGI("Camera", "Frame queue OK - captured %d bytes", fb->len);
-        esp_camera_fb_return(fb);
-    } else {
-        ESP_LOGW("Camera", "Frame queue NULL after init!");
-    }
-
     return true;
 }
 
