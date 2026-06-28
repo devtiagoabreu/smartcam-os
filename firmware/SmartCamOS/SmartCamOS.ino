@@ -304,11 +304,7 @@ void loopTracking() { trackingEngine.update(); }
 void loopAI()       { detectionEngine.update(); }
 void loopApp()     { personTracker.update(); }
 void loopMotion()   { motionEngine.update(); }
-void loopVision()   { visionEngine.update(); }
-void loopTracking() { trackingEngine.update(); }
-void loopAI()       { detectionEngine.update(); }
 void loopBehavior() { behaviorEngine.update(); }
-void loopApp()     { personTracker.update(); }
 void loopNetwork()  { networkService.tick(); }
 void loopStorage()  { storageService.tick(); }
 void loopLogger()   { loggerService.tick(); }
