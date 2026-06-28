@@ -32,6 +32,7 @@ private:
     void handleCameraStream();
     void handleMotionInfo();
     void handleMotionCommand();
+    void handleVisionInfo();
     void handleApiInfo();
 
 public:

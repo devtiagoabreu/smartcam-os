@@ -25,7 +25,12 @@ struct ColorRange {
     uint8_t vMax;
 };
 
-class VisionEngine : public SmartCamModule {
+struct BlobResult {
+    Blob blobs[32];
+    int count;
+};
+
+class VisionEngine : public SmartCamModule, public IFrameProcessor {
 public:
     bool begin() override;
     void update() override;
@@ -38,7 +43,30 @@ public:
     int findBlobs(const Frame& frame, Blob* out, int maxCount);
     bool drawOverlay(Frame& frame, const Blob& blob);
 
+    // Working buffer access for processed frames
+    uint8_t* getWorkingBuffer() const;
+    int getWorkingWidth() const;
+    int getWorkingHeight() const;
+
+    bool process(Frame& frame) override { return true; }
+    const char* processorName() const override { return "VisionEngine"; }
     const char* name() const override { return "VisionEngine"; }
+
+private:
+    uint8_t* m_workBuffer;
+    int m_workWidth;
+    int m_workHeight;
+    size_t m_workSize;
+    bool m_initialized;
+
+    void hsvFromRgb(uint8_t r, uint8_t g, uint8_t b, uint8_t& h, uint8_t& s, uint8_t& v) const;
+    bool isInColorRange(uint8_t h, uint8_t s, uint8_t v, const ColorRange& range) const;
+    void floodFill(const uint8_t* binary, int width, int height, int sx, int sy,
+                   bool* visited, Blob& blob) const;
+
+public:
+    VisionEngine();
+    ~VisionEngine();
 };
 
 #endif

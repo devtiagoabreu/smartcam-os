@@ -4,6 +4,7 @@
 #include "../logger/LoggerService.h"
 #include "../core/camera/CameraEngine.h"
 #include "../core/motion/MotionEngine.h"
+#include "../core/vision/VisionEngine.h"
 #include <WiFi.h>
 #include <esp_heap_caps.h>
 #include <esp_camera.h>
@@ -15,6 +16,7 @@ extern NetworkService networkService;
 extern LoggerService loggerService;
 extern CameraEngine cameraEngine;
 extern MotionEngine motionEngine;
+extern VisionEngine visionEngine;
 
 // ============================================================
 // Embedded Web Files (PROGMEM)
@@ -278,6 +280,10 @@ static void handleMotionCommandRoute() {
     if (s_instance) s_instance->handleMotionCommand();
 }
 
+static void handleVisionInfoRoute() {
+    if (s_instance) s_instance->handleVisionInfo();
+}
+
 static void handleApiInfoRoute() {
     if (s_instance) s_instance->handleApiInfo();
 }
@@ -294,6 +300,7 @@ void DashboardService::registerRoutes() {
     apiServer.registerEndpoint("GET", "/camera/stream", handleCameraStreamRoute);
     apiServer.registerEndpoint("GET", "/motion", handleMotionInfoRoute);
     apiServer.registerEndpoint("POST", "/motion", handleMotionCommandRoute);
+    apiServer.registerEndpoint("GET", "/vision", handleVisionInfoRoute);
     apiServer.registerEndpoint("GET", "/api/info", handleApiInfoRoute);
 }
 
@@ -434,6 +441,16 @@ void DashboardService::handleMotionCommand() {
     } else {
         apiServer.sendError(400, "Unknown command");
     }
+}
+
+void DashboardService::handleVisionInfo() {
+    char buf[1024];
+    snprintf(buf, sizeof(buf),
+        "{\"status\":\"ok\",\"ready\":%s,\"width\":%d,\"height\":%d}",
+        visionEngine.getWorkingBuffer() ? "true" : "false",
+        visionEngine.getWorkingWidth(),
+        visionEngine.getWorkingHeight());
+    apiServer.sendJson(200, buf);
 }
 
 void DashboardService::handleCameraStream() {

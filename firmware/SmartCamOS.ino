@@ -16,6 +16,7 @@
  * Sprint 8: MJPEG Streaming — /camera/stream endpoint.
  * Sprint 9: Motion Engine — DM556D driver, STEP/DIR, HOME, STOP.
  * Sprint 10: Camera × Motor integration — /motion API, web controls.
+ * Sprint 11: Vision Engine — gray, HSV, threshold, blob detection.
  */
 
 #include <Arduino.h>
@@ -130,7 +131,7 @@ void setup() {
     Serial.begin(115200);
     delay(100);
     Serial.println();
-    Serial.println(F("SmartCam OS v0.10.0 Sprint 10 - Camera x Motor"));
+    Serial.println(F("SmartCam OS v0.11.0 Sprint 11 - Vision Engine"));
     Serial.println(F("Platform: ESP32-S3 / T-SIMCAM v1.6"));
 
     g_systemState = SystemState::Init;
@@ -207,7 +208,13 @@ void setupMotion()   {
         loggerService.warning("Motion", "Pan axis init failed");
     }
 }
-void setupVision()   { visionEngine.begin(); }
+void setupVision()   {
+    if (visionEngine.begin()) {
+        loggerService.info("Vision", "Vision engine initialized");
+    } else {
+        loggerService.warning("Vision", "Vision engine init failed");
+    }
+}
 void setupTracking() { trackingEngine.begin(); }
 void setupAI()       { detectionEngine.begin(); }
 void setupBehavior() { behaviorEngine.begin(); }
