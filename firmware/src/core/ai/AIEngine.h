@@ -15,6 +15,15 @@ public:
     unsigned long getLastInferenceTime() const;
 
     const char* name() const override { return "InferenceEngine"; }
+
+private:
+    const uint8_t* m_modelData;
+    size_t m_modelSize;
+    bool m_loaded;
+
+public:
+    InferenceEngine();
+    ~InferenceEngine();
 };
 
 class DetectionEngine : public SmartCamModule {
@@ -30,6 +39,22 @@ public:
     int getAllDetections(Detection* out, int maxCount);
 
     const char* name() const override { return "DetectionEngine"; }
+
+private:
+    static const int MAX_DETECTORS = 8;
+    struct DetectorEntry {
+        char name[32];
+        IDetector* detector;
+        bool active;
+    };
+    DetectorEntry m_detectors[MAX_DETECTORS];
+    int m_detectorCount;
+    int m_activeIndex;
+    bool m_running;
+
+public:
+    DetectionEngine();
+    ~DetectionEngine();
 };
 
 #endif

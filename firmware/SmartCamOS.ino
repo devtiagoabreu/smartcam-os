@@ -17,6 +17,7 @@
  * Sprint 9: Motion Engine — DM556D driver, STEP/DIR, HOME, STOP.
  * Sprint 10: Camera × Motor integration — /motion API, web controls.
  * Sprint 11: Vision Engine — gray, HSV, threshold, blob detection.
+ * Sprint 12: Detection Engine — color detector (first detector).
  */
 
 #include <Arduino.h>
@@ -56,6 +57,7 @@
 #include "src/core/tracking/TrackingEngine.h"
 #include "src/core/motion/MotionEngine.h"
 #include "src/core/ai/AIEngine.h"
+#include "src/core/ai/ColorDetector.h"
 #include "src/core/BehaviorEngine.h"
 
 // ============================================================
@@ -131,7 +133,7 @@ void setup() {
     Serial.begin(115200);
     delay(100);
     Serial.println();
-    Serial.println(F("SmartCam OS v0.11.0 Sprint 11 - Vision Engine"));
+    Serial.println(F("SmartCam OS v0.12.0 Sprint 12 - Detection Engine"));
     Serial.println(F("Platform: ESP32-S3 / T-SIMCAM v1.6"));
 
     g_systemState = SystemState::Init;
@@ -216,7 +218,25 @@ void setupVision()   {
     }
 }
 void setupTracking() { trackingEngine.begin(); }
-void setupAI()       { detectionEngine.begin(); }
+void setupAI()       {
+    detectionEngine.begin();
+
+    ColorDetectorConfig redConfig;
+    redConfig.range.hMin = 0; redConfig.range.hMax = 20;
+    redConfig.range.sMin = 50; redConfig.range.sMax = 255;
+    redConfig.range.vMin = 50; redConfig.range.vMax = 255;
+    redConfig.minBlobArea = 100;
+    redConfig.label = "red";
+
+    ColorDetector* redDetector = new ColorDetector(redConfig);
+    if (redDetector && detectionEngine.registerDetector("red", redDetector)) {
+        detectionEngine.setActiveDetector("red");
+        loggerService.info("AI", "Red color detector registered");
+    } else {
+        delete redDetector;
+        loggerService.warning("AI", "Red color detector registration failed");
+    }
+}
 void setupBehavior() { behaviorEngine.begin(); }
 void setupNetwork()  { networkService.init(); }
 void setupStorage()  { storageService.init(); }

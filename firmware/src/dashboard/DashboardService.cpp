@@ -5,6 +5,8 @@
 #include "../core/camera/CameraEngine.h"
 #include "../core/motion/MotionEngine.h"
 #include "../core/vision/VisionEngine.h"
+#include "../core/ai/AIEngine.h"
+#include "../core/ai/ColorDetector.h"
 #include <WiFi.h>
 #include <esp_heap_caps.h>
 #include <esp_camera.h>
@@ -17,6 +19,7 @@ extern LoggerService loggerService;
 extern CameraEngine cameraEngine;
 extern MotionEngine motionEngine;
 extern VisionEngine visionEngine;
+extern DetectionEngine detectionEngine;
 
 // ============================================================
 // Embedded Web Files (PROGMEM)
@@ -284,6 +287,10 @@ static void handleVisionInfoRoute() {
     if (s_instance) s_instance->handleVisionInfo();
 }
 
+static void handleDetectionInfoRoute() {
+    if (s_instance) s_instance->handleDetectionInfo();
+}
+
 static void handleApiInfoRoute() {
     if (s_instance) s_instance->handleApiInfo();
 }
@@ -301,6 +308,7 @@ void DashboardService::registerRoutes() {
     apiServer.registerEndpoint("GET", "/motion", handleMotionInfoRoute);
     apiServer.registerEndpoint("POST", "/motion", handleMotionCommandRoute);
     apiServer.registerEndpoint("GET", "/vision", handleVisionInfoRoute);
+    apiServer.registerEndpoint("GET", "/detect", handleDetectionInfoRoute);
     apiServer.registerEndpoint("GET", "/api/info", handleApiInfoRoute);
 }
 
@@ -450,6 +458,30 @@ void DashboardService::handleVisionInfo() {
         visionEngine.getWorkingBuffer() ? "true" : "false",
         visionEngine.getWorkingWidth(),
         visionEngine.getWorkingHeight());
+    apiServer.sendJson(200, buf);
+}
+
+void DashboardService::handleDetectionInfo() {
+    char buf[1024];
+    Detection detections[8];
+    int count = detectionEngine.getAllDetections(detections, 8);
+
+    int pos = snprintf(buf, sizeof(buf),
+        "{\"status\":\"ok\",\"detectors\":%d,\"count\":%d,\"detections\":[",
+        detectionEngine.getDetector("red") ? 1 : 0, count);
+
+    for (int i = 0; i < count && pos < (int)sizeof(buf) - 128; i++) {
+        if (i > 0) pos += snprintf(buf + pos, sizeof(buf) - pos, ",");
+        pos += snprintf(buf + pos, sizeof(buf) - pos,
+            "{\"label\":\"%s\",\"x\":%.3f,\"y\":%.3f,"
+            "\"w\":%.3f,\"h\":%.3f,\"conf\":%.2f}",
+            detections[i].label,
+            detections[i].x, detections[i].y,
+            detections[i].width, detections[i].height,
+            detections[i].confidence);
+    }
+
+    snprintf(buf + pos, sizeof(buf) - pos, "]}");
     apiServer.sendJson(200, buf);
 }
 

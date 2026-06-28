@@ -33,6 +33,7 @@ private:
     void handleMotionInfo();
     void handleMotionCommand();
     void handleVisionInfo();
+    void handleDetectionInfo();
     void handleApiInfo();
 
 public:
