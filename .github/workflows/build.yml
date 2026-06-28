@@ -1,0 +1,29 @@
+name: Build Firmware
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Arduino CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
+          sudo mv bin/arduino-cli /usr/local/bin/
+      - name: Install ESP32 core
+        run: |
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32
+      - name: Install dependencies
+        run: |
+          arduino-cli lib install "WebServer"
+          arduino-cli lib install "WebSockets"
+          arduino-cli lib install "ArduinoJson"
+      - name: Build firmware
+        run: |
+          arduino-cli compile --fqbn esp32:esp32:esp32s3 firmware/
