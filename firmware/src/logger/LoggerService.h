@@ -42,6 +42,18 @@ public:
     bool exportToFile(const char* path);
 
     const char* name() const override { return "LoggerService"; }
+
+private:
+    LogLevel m_level;
+    int m_ringSize;
+    int m_head;
+    int m_count;
+    bool m_running;
+    LogEntry* m_ring;
+
+public:
+    LoggerService();
+    ~LoggerService();
 };
 
 #endif

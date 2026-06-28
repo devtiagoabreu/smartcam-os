@@ -7,7 +7,7 @@
  * See docs/ for the complete architecture documentation.
  *
  * Sprint 1: Core interfaces and base classes.
- * All modules are declared and registered — no implementations yet.
+ * Sprint 2: Logger Service — first fully implemented module.
  */
 
 #include <Arduino.h>
@@ -122,12 +122,14 @@ void setup() {
     Serial.begin(115200);
     delay(100);
     Serial.println();
-    Serial.println(F("SmartCam OS v0.1.0 Sprint 1 — Core Interfaces"));
+    Serial.println(F("SmartCam OS v0.2.0 Sprint 2 — Logger Service"));
     Serial.println(F("Platform: ESP32-S3 / T-SIMCAM v1.6"));
 
     g_systemState = SystemState::Init;
 
     setupLogger();
+    loggerService.info("System", "Logger service ready");
+
     setupStorage();
     setupConfig();
     setupCore();
@@ -142,7 +144,7 @@ void setup() {
     setupDashboard();
 
     g_systemState = SystemState::Ready;
-    Serial.println(F("SmartCam OS ready — all interfaces registered."));
+    loggerService.info("System", "SmartCam OS ready — all systems initialized");
 }
 
 // ============================================================
@@ -166,10 +168,10 @@ void loop() {
 }
 
 // ============================================================
-// Stub Implementations (Sprint 1 — interfaces only)
+// Stub Implementations (replaced as each Sprint implements the real module) — interfaces only)
 // ============================================================
 
-void setupCore()     { /* Core scheduler and state manager — Sprint 2 */ }
+void setupCore()     { /* Core scheduler and state manager - Sprint 3 */ } — Sprint 2 */ }
 void setupCamera()   { cameraEngine.begin(); }
 void setupMotion()   { motionEngine.begin(); }
 void setupVision()   { visionEngine.begin(); }
