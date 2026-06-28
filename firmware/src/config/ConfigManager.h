@@ -40,6 +40,24 @@ public:
     bool listProfiles(char** out, int maxCount, int& outCount);
 
     const char* name() const override { return "ConfigManager"; }
+
+private:
+    static const int MAX_SCHEMA_ENTRIES = 64;
+    static const int MAX_PROFILES = 16;
+    static const int PROFILE_NAME_LEN = 32;
+
+    ConfigSchema m_schemas[MAX_SCHEMA_ENTRIES];
+    int m_schemaCount;
+    char m_currentProfile[PROFILE_NAME_LEN];
+    bool m_running;
+    bool m_dirty;
+
+    bool validateKey(const char* key) const;
+    int findSchema(const char* key) const;
+
+public:
+    ConfigManager();
+    ~ConfigManager();
 };
 
 #endif
