@@ -1,0 +1,25 @@
+#ifndef SMARTCAM_API_SERVER_H
+#define SMARTCAM_API_SERVER_H
+
+#include <Arduino.h>
+#include "../../sdk/interfaces/SmartCamService.h"
+
+class ApiServer : public SmartCamService {
+public:
+    bool init() override;
+    void tick() override;
+    bool deinit() override;
+    bool isRunning() const override;
+
+    bool start(int port = 80);
+    bool stop();
+    bool registerEndpoint(const char* method, const char* path, void (*handler)());
+    bool unregisterEndpoint(const char* method, const char* path);
+    bool sendResponse(int code, const char* contentType, const char* body);
+    bool sendJson(int code, const char* json);
+    bool sendError(int code, const char* message);
+
+    const char* name() const override { return "ApiServer"; }
+};
+
+#endif
