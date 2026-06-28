@@ -222,7 +222,7 @@ void setupCamera()   {
 void setupMotion()   {
     motionEngine.begin();
     AxisConfig panAxis;
-    panAxis.stepPin = 2;   // TEMP: was 46 - testing if GPIO46 causes TG1WDT
+    panAxis.stepPin = 2;
     panAxis.dirPin = 45;
     panAxis.enablePin = 31;
     panAxis.homePin = -1;
@@ -231,8 +231,8 @@ void setupMotion()   {
     panAxis.acceleration = 1000.0f;
     panAxis.microSteps = 16;
     if (motionEngine.addAxis(panAxis)) {
-        motionEngine.enableAxis(0, true);
-        loggerService.info("Motion", "Pan axis initialized");
+        // motionEngine.enableAxis(0, true);  // DISABLED - isolating
+        loggerService.info("Motion", "Pan axis init OK (not enabled)");
     } else {
         loggerService.warning("Motion", "Pan axis init failed");
     }
