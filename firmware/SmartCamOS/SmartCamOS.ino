@@ -211,12 +211,7 @@ void loop() {
 
 void setupCore()     { /* Core scheduler and state manager - Sprint 3 */ }
 void setupCamera()   {
-    cameraEngine.setPins(CameraPins());
-    if (cameraEngine.begin()) {
-        loggerService.info("Camera", "Camera initialized (GRAYSCALE+PSRAM, fb=1, LATEST)");
-    } else {
-        loggerService.warning("Camera", "Camera init failed — check pinout or power");
-    }
+    loggerService.info("Camera", "Camera init DISABLED — isolating S3 crash");
 }
 void setupMotion()   {
     motionEngine.begin();
