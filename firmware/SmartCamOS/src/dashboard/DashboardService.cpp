@@ -430,23 +430,29 @@ void DashboardService::registerRoutes() {
 
 void DashboardService::handleRoot() {
     size_t len = strlen_P(INDEX_HTML);
-    char buf[len + 1];
+    char* buf = new char[len + 1];
+    if (!buf) { apiServer.sendError(503, "Out of memory"); return; }
     strcpy_P(buf, INDEX_HTML);
     apiServer.sendResponse(200, "text/html", buf);
+    delete[] buf;
 }
 
 void DashboardService::handleCss() {
     size_t len = strlen_P(STYLE_CSS);
-    char buf[len + 1];
+    char* buf = new char[len + 1];
+    if (!buf) { apiServer.sendError(503, "Out of memory"); return; }
     strcpy_P(buf, STYLE_CSS);
     apiServer.sendResponse(200, "text/css", buf);
+    delete[] buf;
 }
 
 void DashboardService::handleJs() {
     size_t len = strlen_P(APP_JS);
-    char buf[len + 1];
+    char* buf = new char[len + 1];
+    if (!buf) { apiServer.sendError(503, "Out of memory"); return; }
     strcpy_P(buf, APP_JS);
     apiServer.sendResponse(200, "application/javascript", buf);
+    delete[] buf;
 }
 
 void DashboardService::handleNetworkInfo() {
@@ -474,13 +480,13 @@ void DashboardService::handleNetworkInfo() {
 }
 
 void DashboardService::handleLogger() {
-    char buf[2048];
+    static char buf[2048];
     int pos = 0;
     pos += snprintf(buf + pos, sizeof(buf) - pos,
         "{\"status\":\"ok\",\"level\":%d,\"count\":%d,\"entries\":[",
         (int)loggerService.getLevel(), loggerService.getEntryCount());
 
-    LogEntry entries[32];
+    static LogEntry entries[32];
     int count = 0;
     loggerService.getEntries(entries, 32, count);
 
@@ -568,7 +574,7 @@ void DashboardService::handleMotionCommand() {
 }
 
 void DashboardService::handleVisionInfo() {
-    char buf[1024];
+    static char buf[1024];
     snprintf(buf, sizeof(buf),
         "{\"status\":\"ok\",\"ready\":%s,\"width\":%d,\"height\":%d}",
         visionEngine.getWorkingBuffer() ? "true" : "false",
@@ -578,8 +584,8 @@ void DashboardService::handleVisionInfo() {
 }
 
 void DashboardService::handleDetectionInfo() {
-    char buf[1024];
-    Detection detections[8];
+    static char buf[1024];
+    static Detection detections[8];
     int count = detectionEngine.getAllDetections(detections, 8);
 
     int pos = snprintf(buf, sizeof(buf),
@@ -721,7 +727,7 @@ void DashboardService::handleWifiScan() {
     if (wasAp) {
         WiFi.mode(WIFI_AP);
     }
-    char buf[1024];
+    static char buf[1024];
     int pos = snprintf(buf, sizeof(buf), "{\"status\":\"ok\",\"networks\":[");
 
     for (int i = 0; i < count && pos < (int)sizeof(buf) - 64; i++) {
