@@ -9,6 +9,7 @@
  * Sprint 1: Core interfaces and base classes.
  * Sprint 2: Logger Service — first fully implemented module.
  * Sprint 3: Configuration Manager — JSON persistence, profiles, schema.
+ * Sprint 4: Network Service — Wi-Fi STA/AP, captive portal, DNS.
  */
 
 #include <Arduino.h>
@@ -123,7 +124,7 @@ void setup() {
     Serial.begin(115200);
     delay(100);
     Serial.println();
-    Serial.println(F("SmartCam OS v0.3.0 Sprint 3 - Config Manager"));
+    Serial.println(F("SmartCam OS v0.4.0 Sprint 4 - Network Service"));
     Serial.println(F("Platform: ESP32-S3 / T-SIMCAM v1.6"));
 
     g_systemState = SystemState::Init;

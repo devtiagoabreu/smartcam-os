@@ -40,6 +40,23 @@ public:
     NetworkConfig getConfig() const;
 
     const char* name() const override { return "NetworkService"; }
+
+private:
+    NetworkConfig m_config;
+    WiFiMode m_mode;
+    bool m_running;
+    bool m_apActive;
+    bool m_portalActive;
+    unsigned long m_lastTick;
+
+    void handleDHCP();
+    void handleStaticIP();
+    void startDNSServer();
+    void stopDNSServer();
+
+public:
+    NetworkService();
+    ~NetworkService();
 };
 
 #endif
