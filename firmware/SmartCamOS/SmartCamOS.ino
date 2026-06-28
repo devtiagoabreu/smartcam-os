@@ -168,7 +168,8 @@ void setup() {
     setupNetwork();
     setupCamera();
     setupVision();
-    setupMotion();
+    delay(250);
+    // setupMotion();   // DISABLED - isolating TG1WDT crash
     delay(250);
     setupTracking();
     setupAI();
