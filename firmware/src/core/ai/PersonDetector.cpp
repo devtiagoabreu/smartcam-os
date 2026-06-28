@@ -1,0 +1,205 @@
+#include "PersonDetector.h"
+#include <string.h>
+#include <esp_heap_caps.h>
+#include <math.h>
+
+PersonDetector::PersonDetector()
+    : m_resultCount(0)
+    , m_loaded(false)
+    , m_tensorArena(nullptr)
+    , m_inputBuffer(nullptr) {}
+
+PersonDetector::PersonDetector(const PersonDetectorConfig& config)
+    : m_config(config)
+    , m_resultCount(0)
+    , m_loaded(false)
+    , m_tensorArena(nullptr)
+    , m_inputBuffer(nullptr) {}
+
+PersonDetector::~PersonDetector() {
+    unloadModel();
+}
+
+bool PersonDetector::loadModel() {
+    if (m_loaded) return true;
+
+#ifdef SMARTCAM_USE_TFLITE
+    extern const unsigned char g_person_detect_model_data[];
+    extern const int g_person_detect_model_data_len;
+
+    m_tensorArena = (uint8_t*)heap_caps_malloc(m_config.tensorArenaSize, MALLOC_CAP_SPIRAM);
+    if (!m_tensorArena) {
+        m_tensorArena = (uint8_t*)malloc(m_config.tensorArenaSize);
+    }
+    if (!m_tensorArena) return false;
+
+    static tflite::MicroErrorReporter microErrorReporter;
+    m_errorReporter = &microErrorReporter;
+
+    m_model = tflite::GetModel(g_person_detect_model_data);
+    if (m_model->version() != TFLITE_SCHEMA_VERSION) {
+        m_errorReporter->Report("Model schema mismatch");
+        return false;
+    }
+
+    m_resolver = new tflite::MicroMutableOpResolver<10>();
+    m_resolver->AddFullyConnected();
+    m_resolver->AddConv2D();
+    m_resolver->AddDepthwiseConv2D();
+    m_resolver->AddReshape();
+    m_resolver->AddSoftmax();
+    m_resolver->AddAveragePool2D();
+    m_resolver->AddMaxPool2D();
+
+    m_interpreter = new tflite::MicroInterpreter(
+        m_model, *m_resolver, m_tensorArena, m_config.tensorArenaSize, m_errorReporter);
+
+    TfLiteTensor* input = m_interpreter->input(0);
+    if (input->dims->size != 4) return false;
+    m_config.inputWidth = input->dims->data[1];
+    m_config.inputHeight = input->dims->data[2];
+#endif
+
+    m_inputBuffer = (uint8_t*)heap_caps_malloc(
+        m_config.inputWidth * m_config.inputHeight * 3, MALLOC_CAP_SPIRAM);
+    if (!m_inputBuffer) {
+        m_inputBuffer = (uint8_t*)malloc(m_config.inputWidth * m_config.inputHeight * 3);
+    }
+    if (!m_inputBuffer) return false;
+
+    m_loaded = true;
+    return true;
+}
+
+void PersonDetector::preprocessFrame(uint8_t* frame, int width, int height) {
+    if (!frame || !m_inputBuffer) return;
+
+    float scaleX = (float)m_config.inputWidth / width;
+    float scaleY = (float)m_config.inputHeight / height;
+
+    for (int row = 0; row < m_config.inputHeight; row++) {
+        int srcRow = (int)(row / scaleY);
+        if (srcRow >= height) srcRow = height - 1;
+
+        for (int col = 0; col < m_config.inputWidth; col++) {
+            int srcCol = (int)(col / scaleX);
+            if (srcCol >= width) srcCol = width - 1;
+
+            int srcIdx = (srcRow * width + srcCol) * 2;
+            int dstIdx = (row * m_config.inputWidth + col) * 3;
+
+            uint16_t rgb565 = *(uint16_t*)(frame + srcIdx);
+            uint8_t r5 = (rgb565 >> 11) & 0x1F;
+            uint8_t g6 = (rgb565 >> 5) & 0x3F;
+            uint8_t b5 = rgb565 & 0x1F;
+
+            m_inputBuffer[dstIdx + 0] = (r5 * 255 + 15) / 31;
+            m_inputBuffer[dstIdx + 1] = (g6 * 255 + 31) / 63;
+            m_inputBuffer[dstIdx + 2] = (b5 * 255 + 15) / 31;
+        }
+    }
+}
+
+bool PersonDetector::runInference(uint8_t* frame, int width, int height) {
+    if (!m_loaded || !frame) return false;
+
+    m_resultCount = 0;
+
+#ifdef SMARTCAM_USE_TFLITE
+    TfLiteTensor* input = m_interpreter->input(0);
+    int inputChannels = input->dims->data[3];
+
+    preprocessFrame(frame, width, height);
+
+    if (inputChannels == 1) {
+        for (int i = 0; i < m_config.inputWidth * m_config.inputHeight; i++) {
+            int gray = (77 * m_inputBuffer[i * 3] +
+                        150 * m_inputBuffer[i * 3 + 1] +
+                        29 * m_inputBuffer[i * 3 + 2]) >> 8;
+            input->data.uint8[i] = (uint8_t)gray;
+        }
+    } else {
+        memcpy(input->data.uint8, m_inputBuffer, m_config.inputWidth * m_config.inputHeight * 3);
+    }
+
+    TfLiteStatus invokeStatus = m_interpreter->Invoke();
+    if (invokeStatus != kTfLiteOk) return false;
+
+    TfLiteTensor* output = m_interpreter->output(0);
+    int outputSize = output->dims->data[output->dims->size - 1];
+
+    float personScore = 0.0f;
+    if (output->type == kTfLiteUInt8) {
+        personScore = output->data.uint8[1] / 255.0f;
+    } else if (output->type == kTfLiteFloat32) {
+        personScore = sigmoid(output->data.f[1]);
+    }
+
+    if (personScore >= m_config.confidenceThreshold) {
+        Detection& d = m_results[m_resultCount];
+        d.x = 0.0f;
+        d.y = 0.0f;
+        d.width = 1.0f;
+        d.height = 1.0f;
+        d.confidence = personScore;
+        d.classId = 1;
+        strncpy(d.label, m_config.label, sizeof(d.label) - 1);
+        d.label[sizeof(d.label) - 1] = '\0';
+        m_resultCount = 1;
+    }
+#else
+    (void)frame;
+    (void)width;
+    (void)height;
+#endif
+
+    return true;
+}
+
+int PersonDetector::getDetections(Detection* out, int maxCount) {
+    if (!out || maxCount <= 0) return 0;
+    int count = m_resultCount < maxCount ? m_resultCount : maxCount;
+    for (int i = 0; i < count; i++) {
+        out[i] = m_results[i];
+    }
+    return count;
+}
+
+void PersonDetector::unloadModel() {
+#ifdef SMARTCAM_USE_TFLITE
+    delete m_interpreter;
+    m_interpreter = nullptr;
+    delete m_resolver;
+    m_resolver = nullptr;
+#endif
+    if (m_tensorArena) {
+        free(m_tensorArena);
+        m_tensorArena = nullptr;
+    }
+    if (m_inputBuffer) {
+        free(m_inputBuffer);
+        m_inputBuffer = nullptr;
+    }
+    m_resultCount = 0;
+    m_loaded = false;
+}
+
+void PersonDetector::setConfig(const PersonDetectorConfig& config) {
+    m_config = config;
+}
+
+PersonDetectorConfig PersonDetector::getConfig() const {
+    return m_config;
+}
+
+int PersonDetector::argmax(const float* scores, int n) const {
+    int best = 0;
+    for (int i = 1; i < n; i++) {
+        if (scores[i] > scores[best]) best = i;
+    }
+    return best;
+}
+
+float PersonDetector::sigmoid(float x) const {
+    return 1.0f / (1.0f + expf(-x));
+}

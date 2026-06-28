@@ -19,6 +19,7 @@
  * Sprint 11: Vision Engine — gray, HSV, threshold, blob detection.
  * Sprint 12: Detection Engine — color detector (first detector).
  * Sprint 13: Tracking Engine — PID centering, motor follows target.
+ * Sprint 14: Person Detection — TFLite Micro person detector.
  */
 
 #include <Arduino.h>
@@ -59,6 +60,7 @@
 #include "src/core/motion/MotionEngine.h"
 #include "src/core/ai/AIEngine.h"
 #include "src/core/ai/ColorDetector.h"
+#include "src/core/ai/PersonDetector.h"
 #include "src/core/BehaviorEngine.h"
 
 // ============================================================
@@ -134,7 +136,7 @@ void setup() {
     Serial.begin(115200);
     delay(100);
     Serial.println();
-    Serial.println(F("SmartCam OS v0.13.0 Sprint 13 - Tracking Engine"));
+    Serial.println(F("SmartCam OS v0.14.0 Sprint 14 - Person Detection"));
     Serial.println(F("Platform: ESP32-S3 / T-SIMCAM v1.6"));
 
     g_systemState = SystemState::Init;
@@ -248,6 +250,14 @@ void setupAI()       {
     } else {
         delete redDetector;
         loggerService.warning("AI", "Red color detector registration failed");
+    }
+
+    PersonDetector* personDetector = new PersonDetector();
+    if (personDetector && detectionEngine.registerDetector("person", personDetector)) {
+        loggerService.info("AI", "Person detector registered");
+    } else {
+        delete personDetector;
+        loggerService.warning("AI", "Person detector registration failed");
     }
 }
 void setupBehavior() { behaviorEngine.begin(); }
