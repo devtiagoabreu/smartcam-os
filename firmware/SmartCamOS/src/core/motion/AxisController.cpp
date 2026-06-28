@@ -117,7 +117,11 @@ bool AxisController::isBusy() const {
 bool AxisController::enable(bool on) {
     m_state.isEnabled = on;
     digitalWrite(m_config.enablePin, on ? LOW : HIGH);
-    if (!on) stop();
+    if (on) {
+        startTimerPeriodic();
+    } else {
+        stop();
+    }
     return true;
 }
 
@@ -142,8 +146,13 @@ void AxisController::startTimer() {
     timerArgs.name = "step_timer";
 
     if (esp_timer_create(&timerArgs, &s_stepTimer) == ESP_OK) {
-        esp_timer_start_periodic(s_stepTimer, 50); // 50us = 20kHz max step rate
         m_timerStarted = true;
+    }
+}
+
+void AxisController::startTimerPeriodic() {
+    if (s_stepTimer && m_timerStarted) {
+        esp_timer_start_periodic(s_stepTimer, 1000); // 1000us = 1kHz (was 50us/20kHz)
     }
 }
 

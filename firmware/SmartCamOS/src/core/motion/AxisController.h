@@ -39,6 +39,7 @@ private:
     bool m_timerStarted;
 
     void startTimer();
+    void startTimerPeriodic();
     void stopTimer();
     void doStep();
     void computeSpeed();
