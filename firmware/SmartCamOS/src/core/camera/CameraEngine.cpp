@@ -29,7 +29,7 @@ static camera_config_t buildEspConfig(const CameraPins& pins, const CameraConfig
     c.jpeg_quality = config.jpegQuality;
     c.fb_count = config.fbCount;
     c.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
-    c.fb_location = CAMERA_FB_IN_DRAM;
+    c.fb_location = CAMERA_FB_IN_PSRAM;
     return c;
 }
 
