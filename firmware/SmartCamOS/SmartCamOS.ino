@@ -144,9 +144,9 @@ void setup() {
     delay(100);
 
     // Disable TG1 WDT (Interrupt Watchdog) which can fire during camera init
-    TIMERG1.wdtwprotect = TIMG_WDT_WKEY_V;
-    TIMERG1.wdtconfig0 = 0;
-    TIMERG1.wdtwprotect = 0;
+    TIMERG1.wdtwprotect.val = TIMG_WDT_WKEY_V;
+    TIMERG1.wdtconfig0.val = 0;
+    TIMERG1.wdtwprotect.val = 0;
 
     Serial.println();
     Serial.println(F("SmartCam OS v1.0.0 Sprint 15 - Person Tracker App"));
