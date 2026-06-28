@@ -26,19 +26,10 @@ struct CameraPins {
 
 struct CameraConfig {
     int xclkFreq = 20000000;
-    int frameSize = 8;      // 0-13: 96x96 to 1600x1200
-    int jpegQuality = 12;   // 10-63 (lower = better)
-    int fbCount = 2;        // 1 or 2
-    int gmacSize = 0;       // Extra GMAC buffer (bytes)
-};
-
-struct CameraFrame {
-    uint8_t* data;
-    size_t len;
-    int width;
-    int height;
-    int format; // 0=JPEG, 1=RGB565, 2=GRAYSCALE
-    unsigned long timestamp;
+    int frameSize = 8;
+    int jpegQuality = 12;
+    int fbCount = 2;
+    int gmacSize = 0;
 };
 
 class CameraEngine : public SmartCamModule {
@@ -54,7 +45,9 @@ public:
     CameraPins getPins() const;
     bool setPins(const CameraPins& pins);
     bool captureFrame();
-    const CameraFrame* getCurrentFrame() const;
+    bool getFrame(uint8_t** out, int* w, int* h);
+    void returnFrame();
+    const Frame* getCurrentFrame() const;
     bool addProcessor(IFrameProcessor* processor);
     bool removeProcessor(IFrameProcessor* processor);
     int getFps() const;
@@ -66,7 +59,7 @@ public:
 private:
     CameraConfig m_config;
     CameraPins m_pins;
-    CameraFrame m_frame;
+    Frame m_frame;
     bool m_initialized;
     bool m_streaming;
     int m_fps;
@@ -75,6 +68,7 @@ private:
     unsigned long m_fpsTimer;
     IFrameProcessor* m_processors[4];
     int m_processorCount;
+    camera_fb_t* m_currentFb;
 
     void resetFrame();
     void updateFps();

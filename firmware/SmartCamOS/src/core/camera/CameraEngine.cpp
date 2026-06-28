@@ -19,8 +19,8 @@ static camera_config_t buildEspConfig(const CameraPins& pins, const CameraConfig
     c.pin_pclk = pins.pclk;
     c.pin_vsync = pins.vsync;
     c.pin_href = pins.href;
-    c.pin_sscb_sda = pins.siod;
-    c.pin_sscb_scl = pins.sioc;
+    c.pin_sccb_sda = pins.siod;
+    c.pin_sccb_scl = pins.sioc;
     c.pin_pwdn = pins.pwdn;
     c.pin_reset = pins.reset;
     c.xclk_freq_hz = config.xclkFreq;
@@ -40,7 +40,8 @@ CameraEngine::CameraEngine()
     , m_lastFrameTime(0)
     , m_frameCount(0)
     , m_fpsTimer(0)
-    , m_processorCount(0) {
+    , m_processorCount(0)
+    , m_currentFb(nullptr) {
     resetFrame();
 }
 
@@ -50,10 +51,10 @@ CameraEngine::~CameraEngine() {
 
 void CameraEngine::resetFrame() {
     m_frame.data = nullptr;
-    m_frame.len = 0;
+    m_frame.size = 0;
     m_frame.width = 0;
     m_frame.height = 0;
-    m_frame.format = 0;
+    m_frame.bytesPerPixel = 0;
     m_frame.timestamp = 0;
 }
 
@@ -84,14 +85,20 @@ bool CameraEngine::begin() {
 void CameraEngine::update() {
     if (!m_streaming || !m_initialized) return;
 
+    if (m_currentFb) {
+        esp_camera_fb_return(m_currentFb);
+        m_currentFb = nullptr;
+    }
+
     camera_fb_t* fb = esp_camera_fb_get();
     if (!fb) return;
+    m_currentFb = fb;
 
     m_frame.data = fb->buf;
-    m_frame.len = fb->len;
+    m_frame.size = fb->len;
     m_frame.width = fb->width;
     m_frame.height = fb->height;
-    m_frame.format = (fb->format == PIXFORMAT_JPEG) ? 0 : 1;
+    m_frame.bytesPerPixel = (fb->format == PIXFORMAT_JPEG) ? 0 : 2;
     m_frame.timestamp = millis();
 
     for (int i = 0; i < m_processorCount; i++) {
@@ -100,13 +107,16 @@ void CameraEngine::update() {
         }
     }
 
-    esp_camera_fb_return(fb);
     m_frameCount++;
     updateFps();
 }
 
 bool CameraEngine::stop() {
     m_streaming = false;
+    if (m_currentFb) {
+        esp_camera_fb_return(m_currentFb);
+        m_currentFb = nullptr;
+    }
     if (m_initialized) {
         esp_camera_deinit();
         m_initialized = false;
@@ -152,21 +162,37 @@ bool CameraEngine::setPins(const CameraPins& pins) {
 bool CameraEngine::captureFrame() {
     if (!m_initialized) return false;
 
+    if (m_currentFb) {
+        esp_camera_fb_return(m_currentFb);
+        m_currentFb = nullptr;
+    }
+
     camera_fb_t* fb = esp_camera_fb_get();
     if (!fb) return false;
+    m_currentFb = fb;
 
     m_frame.data = fb->buf;
-    m_frame.len = fb->len;
+    m_frame.size = fb->len;
     m_frame.width = fb->width;
     m_frame.height = fb->height;
-    m_frame.format = 0;
+    m_frame.bytesPerPixel = 0;
     m_frame.timestamp = millis();
 
-    esp_camera_fb_return(fb);
     return true;
 }
 
-const CameraFrame* CameraEngine::getCurrentFrame() const {
+bool CameraEngine::getFrame(uint8_t** out, int* w, int* h) {
+    if (!out || !w || !h) return false;
+    *out = m_frame.data;
+    *w = m_frame.width;
+    *h = m_frame.height;
+    return m_frame.data != nullptr;
+}
+
+void CameraEngine::returnFrame() {
+}
+
+const Frame* CameraEngine::getCurrentFrame() const {
     return &m_frame;
 }
 

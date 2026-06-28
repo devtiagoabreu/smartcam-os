@@ -8,11 +8,7 @@ static esp_timer_handle_t s_stepTimer = nullptr;
 
 static void stepTimerCallback(void* arg) {
     (void)arg;
-    for (int i = 0; i < AxisController::s_instanceCount; i++) {
-        if (AxisController::s_activeInstances[i]) {
-            AxisController::s_activeInstances[i]->doStep();
-        }
-    }
+    AxisController::onTimer();
 }
 
 AxisController::AxisController()
@@ -206,6 +202,14 @@ void AxisController::computeSpeed() {
 void AxisController::setDirection(bool positive) {
     digitalWrite(m_config.dirPin, positive ? HIGH : LOW);
     delayMicroseconds(5);
+}
+
+void AxisController::onTimer() {
+    for (int i = 0; i < s_instanceCount; i++) {
+        if (s_activeInstances[i]) {
+            s_activeInstances[i]->doStep();
+        }
+    }
 }
 
 bool AxisController::attachTimer(AxisController* axis) {

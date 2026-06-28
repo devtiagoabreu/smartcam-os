@@ -2,6 +2,9 @@
 #include "../logger/LoggerService.h"
 #include <esp_timer.h>
 
+extern CameraEngine cameraEngine;
+extern DetectionEngine detectionEngine;
+extern TrackingEngine trackingEngine;
 extern LoggerService loggerService;
 
 PersonTrackerApp::PersonTrackerApp()
@@ -118,7 +121,7 @@ bool PersonTrackerApp::startTrackingColor(const char* colorLabel) {
     trackingEngine.setTarget(initialTarget);
     m_enabled = true;
 
-    loggerService.info("App", "Color tracking started for %s", colorLabel);
+    loggerService.info("App", "Color tracking started");
     return true;
 }
 
@@ -132,7 +135,7 @@ bool PersonTrackerApp::stopTracking() {
 bool PersonTrackerApp::setDetector(const char* name) {
     IDetector* detector = detectionEngine.getDetector(name);
     if (!detector) {
-        loggerService.warning("App", "Unknown detector: %s", name);
+        loggerService.warning("App", "Unknown detector");
         return false;
     }
     return detectionEngine.setActiveDetector(name);

@@ -105,10 +105,11 @@ bool ApiServer::sendError(int code, const char* message) {
 bool ApiServer::serveStaticFile(const char* path, const uint8_t* data, size_t len, const char* mime) {
     if (!s_webServer) return false;
     s_webServer->on(path, HTTP_GET, [this, data, len, mime]() {
+        String body((const char*)data, len);
         if (mime) {
-            s_webServer->send(200, mime, (const char*)data, len);
+            s_webServer->send(200, mime, body);
         } else {
-            s_webServer->send(200, "text/html", (const char*)data, len);
+            s_webServer->send(200, "text/html", body);
         }
     });
     return true;
