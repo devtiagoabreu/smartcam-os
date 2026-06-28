@@ -142,7 +142,7 @@ void setup() {
     delay(100);
     Serial.println();
     Serial.println(F("SmartCam OS v1.0.0 Sprint 15 - Person Tracker App"));
-    Serial.println(F("Platform: ESP32-S3 / T-SIMCAM v1.6"));
+    Serial.println(F("Platform: ESP32-S3 / LilyGO T-Camera S3 v1.3"));
 
     g_systemState = SystemState::Init;
 
@@ -199,7 +199,7 @@ void setupCamera()   {
         cameraEngine.startStream();
         loggerService.info("Camera", "Camera initialized and streaming");
     } else {
-        loggerService.warning("Camera", "Camera initialization failed");
+        loggerService.warning("Camera", "Camera init failed — check pinout or power");
     }
 }
 void setupMotion()   {

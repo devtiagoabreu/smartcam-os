@@ -8,20 +8,20 @@
 struct CameraPins {
     int pwdn = -1;
     int reset = -1;
-    int xclk = 15;
+    int xclk = 10;
     int siod = 4;
     int sioc = 5;
-    int d7 = 16;
-    int d6 = 17;
-    int d5 = 18;
-    int d4 = 19;
-    int d3 = 20;
-    int d2 = 21;
-    int d1 = 47;
-    int d0 = 48;
-    int vsync = 6;
-    int href = 7;
-    int pclk = 13;
+    int d7 = 14;
+    int d6 = 15;
+    int d5 = 16;
+    int d4 = 17;
+    int d3 = 18;
+    int d2 = 19;
+    int d1 = 21;
+    int d0 = 26;
+    int vsync = 12;
+    int href = 13;
+    int pclk = 11;
 };
 
 struct CameraConfig {
