@@ -24,6 +24,8 @@
  */
 
 #include <Arduino.h>
+#include "soc/timer_group_struct.h"
+#include "soc/timer_group_reg.h"
 
 // ============================================================
 // SDK Interfaces
@@ -140,6 +142,12 @@ void loopDashboard();
 void setup() {
     Serial.begin(115200);
     delay(100);
+
+    // Disable TG1 WDT (Interrupt Watchdog) which can fire during camera init
+    TIMERG1.wdt_wprotect = TIMG_WDT_WKEY_VALUE;
+    TIMERG1.wdt_config0.en = 0;
+    TIMERG1.wdt_wprotect = 0;
+
     Serial.println();
     Serial.println(F("SmartCam OS v1.0.0 Sprint 15 - Person Tracker App"));
     Serial.println(F("Platform: ESP32-S3 / LilyGO T-SIMCAM"));
@@ -147,35 +155,29 @@ void setup() {
     pinMode(1, OUTPUT);
     digitalWrite(1, HIGH);
 
-    disableCore0WDT();
-    disableCore1WDT();
-
     g_systemState = SystemState::Init;
 
     setupLogger();
     loggerService.info("System", "Logger service ready");
-    delay(50);
+    delay(250);
 
     setupStorage();
     setupConfig();
     setupCore();
-    delay(50);
+    delay(250);
     setupNetwork();
     setupCamera();
     setupVision();
     setupMotion();
-    delay(50);
+    delay(250);
     setupTracking();
     setupAI();
     setupBehavior();
     setupApp();
-    delay(50);
+    delay(250);
     setupAPI();
     setupDashboard();
-    delay(50);
-
-    enableCore0WDT();
-    enableCore1WDT();
+    delay(250);
 
     g_systemState = SystemState::Ready;
     loggerService.info("System", "SmartCam OS ready — all systems initialized");
