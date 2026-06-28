@@ -142,7 +142,10 @@ void setup() {
     delay(100);
     Serial.println();
     Serial.println(F("SmartCam OS v1.0.0 Sprint 15 - Person Tracker App"));
-    Serial.println(F("Platform: ESP32-S3 / LilyGO T-Camera S3 v1.3"));
+    Serial.println(F("Platform: ESP32-S3 / LilyGO T-SIMCAM"));
+
+    pinMode(1, OUTPUT);
+    digitalWrite(1, HIGH);
 
     g_systemState = SystemState::Init;
 
