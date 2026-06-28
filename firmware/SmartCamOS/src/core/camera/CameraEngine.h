@@ -5,6 +5,8 @@
 #include "../../sdk/interfaces/SmartCamModule.h"
 #include "../../sdk/interfaces/IFrameProcessor.h"
 
+struct camera_fb_t;
+
 struct CameraPins {
     int pwdn = -1;
     int reset = -1;
