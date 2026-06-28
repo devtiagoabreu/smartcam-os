@@ -1,6 +1,7 @@
 #include "DashboardService.h"
 #include "../api/ApiServer.h"
 #include "../network/NetworkService.h"
+#include "../logger/LoggerService.h"
 #include <WiFi.h>
 #include <esp_heap_caps.h>
 
@@ -8,6 +9,7 @@ static DashboardService* s_instance = nullptr;
 
 extern ApiServer apiServer;
 extern NetworkService networkService;
+extern LoggerService loggerService;
 
 // ============================================================
 // Embedded Web Files (PROGMEM)
@@ -187,12 +189,32 @@ static void handleSystemInfoRoute() {
     if (s_instance) s_instance->handleSystemInfo();
 }
 
+static void handleNetworkInfoRoute() {
+    if (s_instance) s_instance->handleNetworkInfo();
+}
+
+static void handleLoggerRoute() {
+    if (s_instance) s_instance->handleLogger();
+}
+
+static void handleCameraInfoRoute() {
+    if (s_instance) s_instance->handleCameraInfo();
+}
+
+static void handleApiInfoRoute() {
+    if (s_instance) s_instance->handleApiInfo();
+}
+
 void DashboardService::registerRoutes() {
     apiServer.registerEndpoint("GET", "/", handleRootRoute);
     apiServer.registerEndpoint("GET", "/index.html", handleRootRoute);
     apiServer.registerEndpoint("GET", "/style.css", handleCssRoute);
     apiServer.registerEndpoint("GET", "/app.js", handleJsRoute);
     apiServer.registerEndpoint("GET", "/system", handleSystemInfoRoute);
+    apiServer.registerEndpoint("GET", "/network", handleNetworkInfoRoute);
+    apiServer.registerEndpoint("GET", "/logger", handleLoggerRoute);
+    apiServer.registerEndpoint("GET", "/camera", handleCameraInfoRoute);
+    apiServer.registerEndpoint("GET", "/api/info", handleApiInfoRoute);
 }
 
 void DashboardService::handleRoot() {
@@ -214,6 +236,66 @@ void DashboardService::handleJs() {
     char buf[len + 1];
     strcpy_P(buf, APP_JS);
     apiServer.sendResponse(200, "application/javascript", buf);
+}
+
+void DashboardService::handleNetworkInfo() {
+    char buf[512];
+    IPAddress ip = networkService.getIp();
+    uint8_t mac[6];
+    WiFi.macAddress(mac);
+
+    snprintf(buf, sizeof(buf),
+        "{"
+        "\"status\":\"ok\","
+        "\"ip\":\"%d.%d.%d.%d\","
+        "\"ssid\":\"%s\","
+        "\"rssi\":%d,"
+        "\"mac\":\"%02X:%02X:%02X:%02X:%02X:%02X\","
+        "\"connected\":%s"
+        "}",
+        ip[0], ip[1], ip[2], ip[3],
+        WiFi.SSID().c_str(),
+        networkService.getRssi(),
+        mac[0], mac[1], mac[2], mac[3], mac[4], mac[5],
+        networkService.isConnected() ? "true" : "false");
+
+    apiServer.sendJson(200, buf);
+}
+
+void DashboardService::handleLogger() {
+    char buf[2048];
+    int pos = 0;
+    pos += snprintf(buf + pos, sizeof(buf) - pos,
+        "{\"status\":\"ok\",\"level\":%d,\"count\":%d,\"entries\":[",
+        (int)loggerService.getLevel(), loggerService.getEntryCount());
+
+    LogEntry entries[32];
+    int count = 0;
+    loggerService.getEntries(entries, 32, count);
+
+    for (int i = 0; i < count && pos < (int)sizeof(buf) - 128; i++) {
+        if (i > 0) pos += snprintf(buf + pos, sizeof(buf) - pos, ",");
+        pos += snprintf(buf + pos, sizeof(buf) - pos,
+            "{\"t\":%lu,\"l\":%d,\"m\":\"%s\",\"msg\":\"%s\"}",
+            entries[i].timestamp, (int)entries[i].level,
+            entries[i].module, entries[i].message);
+    }
+
+    snprintf(buf + pos, sizeof(buf) - pos, "]}");
+    apiServer.sendJson(200, buf);
+}
+
+void DashboardService::handleCameraInfo() {
+    apiServer.sendJson(200,
+        "{\"status\":\"unavailable\",\"fps\":0,\"resolution\":\"-\"}");
+}
+
+void DashboardService::handleApiInfo() {
+    apiServer.sendJson(200,
+        "{\"status\":\"ok\",\"endpoints\":["
+        "\"/\",\"/index.html\",\"/style.css\",\"/app.js\","
+        "\"/system\",\"/network\",\"/logger\",\"/camera\",\"/api/info\""
+        "]}");
 }
 
 void DashboardService::handleSystemInfo() {

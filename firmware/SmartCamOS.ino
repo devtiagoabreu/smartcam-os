@@ -11,6 +11,7 @@
  * Sprint 3: Configuration Manager — JSON persistence, profiles, schema.
  * Sprint 4: Network Service — Wi-Fi STA/AP, captive portal, DNS.
  * Sprint 5: Dashboard Service — web interface served from PROGMEM.
+ * Sprint 6: REST API — /network, /logger, /camera, /api/info endpoints.
  */
 
 #include <Arduino.h>
@@ -125,7 +126,7 @@ void setup() {
     Serial.begin(115200);
     delay(100);
     Serial.println();
-    Serial.println(F("SmartCam OS v0.5.0 Sprint 5 - Dashboard Service"));
+    Serial.println(F("SmartCam OS v0.6.0 Sprint 6 - REST API"));
     Serial.println(F("Platform: ESP32-S3 / T-SIMCAM v1.6"));
 
     g_systemState = SystemState::Init;

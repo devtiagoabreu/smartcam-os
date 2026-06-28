@@ -26,6 +26,10 @@ private:
     void handleCss();
     void handleJs();
     void handleSystemInfo();
+    void handleNetworkInfo();
+    void handleLogger();
+    void handleCameraInfo();
+    void handleApiInfo();
 
 public:
     DashboardService();
