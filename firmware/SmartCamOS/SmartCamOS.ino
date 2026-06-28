@@ -297,11 +297,11 @@ void setupConfig()   { configManager.init(); }
 void setupDashboard(){ dashboardService.init(); }
 
 void loopCore()     { delay(5); }
-void loopCamera()   { /* DISABLED: S3 driver queue NULL bug */ }
-void loopVision()   { /* DISABLED: needs camera */ }
-void loopTracking() { /* DISABLED: needs vision */ }
-void loopAI()       { /* DISABLED: needs camera */ }
-void loopApp()     { /* DISABLED: needs tracking */ }
+void loopCamera()   { cameraEngine.update(); }
+void loopVision()   { visionEngine.update(); }
+void loopTracking() { trackingEngine.update(); }
+void loopAI()       { detectionEngine.update(); }
+void loopApp()      { personTracker.update(); }
 void loopMotion()   { motionEngine.update(); }
 void loopBehavior() { behaviorEngine.update(); }
 void loopNetwork()  { networkService.tick(); }
