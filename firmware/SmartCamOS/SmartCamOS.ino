@@ -221,7 +221,21 @@ void setupCamera()   {
 }
 void setupMotion()   {
     motionEngine.begin();
-    loggerService.info("Motion", "Motion engine started (no axis, testing camera)");
+    AxisConfig panAxis;
+    panAxis.stepPin = 21;      // Grove SCL (mPCIe_LED, safe)
+    panAxis.dirPin = 48;       // mPCIe_PWR (lateral connector, safe)
+    panAxis.enablePin = -1;    // No enable pin (tie DM556D ENA+ to GND)
+    panAxis.homePin = -1;
+    panAxis.stepsPerDegree = 16.0f * 200.0f / 360.0f;
+    panAxis.maxSpeed = 5000.0f;
+    panAxis.acceleration = 1000.0f;
+    panAxis.microSteps = 16;
+    if (motionEngine.addAxis(panAxis)) {
+        motionEngine.enableAxis(0, true);
+        loggerService.info("Motion", "Pan axis initialized");
+    } else {
+        loggerService.warning("Motion", "Pan axis init failed");
+    }
 }
 void setupVision()   {
     if (visionEngine.begin()) {
@@ -284,7 +298,9 @@ void setupConfig()   { configManager.init(); }
 void setupDashboard(){ dashboardService.init(); }
 
 void loopCore()     { delay(5); }
-void loopCamera()   { cameraEngine.update(); }
+void loopCamera()   {
+    // Skip: camera frame queue is NULL on ESP32-S3 (driver bug in Arduino 3.3.10)
+}
 void loopMotion()   { motionEngine.update(); }
 void loopVision()   { visionEngine.update(); }
 void loopTracking() { trackingEngine.update(); }
