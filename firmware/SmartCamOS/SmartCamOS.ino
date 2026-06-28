@@ -222,17 +222,17 @@ void setupCamera()   {
 void setupMotion()   {
     motionEngine.begin();
     AxisConfig panAxis;
-    panAxis.stepPin = 2;
-    panAxis.dirPin = 45;
-    panAxis.enablePin = 31;
+    panAxis.stepPin = 21;    // Grove SCL
+    panAxis.dirPin = 31;     // Grove SDA
+    panAxis.enablePin = 45;  // mPCIe TX (strapping, ok after boot)
     panAxis.homePin = -1;
     panAxis.stepsPerDegree = 16.0f * 200.0f / 360.0f;
     panAxis.maxSpeed = 5000.0f;
     panAxis.acceleration = 1000.0f;
     panAxis.microSteps = 16;
     if (motionEngine.addAxis(panAxis)) {
-        // motionEngine.enableAxis(0, true);  // DISABLED - isolating
-        loggerService.info("Motion", "Pan axis init OK (not enabled)");
+        motionEngine.enableAxis(0, true);
+        loggerService.info("Motion", "Pan axis initialized");
     } else {
         loggerService.warning("Motion", "Pan axis init failed");
     }
