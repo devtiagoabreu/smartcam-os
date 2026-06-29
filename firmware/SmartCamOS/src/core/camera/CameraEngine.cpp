@@ -181,11 +181,12 @@ bool CameraEngine::captureFrame() {
     return true;
 }
 
-bool CameraEngine::getFrame(uint8_t** out, int* w, int* h) {
+bool CameraEngine::getFrame(uint8_t** out, int* w, int* h, size_t* s) {
     if (!out || !w || !h) return false;
     *out = m_frame.data;
     *w = m_frame.width;
     *h = m_frame.height;
+    if (s) *s = m_frame.size;
     return m_frame.data != nullptr;
 }
 

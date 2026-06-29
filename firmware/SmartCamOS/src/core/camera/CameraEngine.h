@@ -45,7 +45,7 @@ public:
     CameraPins getPins() const;
     bool setPins(const CameraPins& pins);
     bool captureFrame();
-    bool getFrame(uint8_t** out, int* w, int* h);
+    bool getFrame(uint8_t** out, int* w, int* h, size_t* s = nullptr);
     void returnFrame();
     const Frame* getCurrentFrame() const;
     bool addProcessor(IFrameProcessor* processor);

@@ -104,7 +104,7 @@ void PersonDetector::preprocessFrame(uint8_t* frame, int width, int height) {
     }
 }
 
-bool PersonDetector::runInference(uint8_t* frame, int width, int height) {
+bool PersonDetector::runInference(uint8_t* frame, int width, int height, size_t size) {
     if (!m_loaded || !frame) return false;
 
     m_resultCount = 0;
@@ -159,7 +159,8 @@ bool PersonDetector::runInference(uint8_t* frame, int width, int height) {
     }
     if (!rgbBuf) return true;
 
-    if (!fmt2rgb888(frame, width * height * 2, PIXFORMAT_JPEG, rgbBuf)) {
+    size_t srcLen = size ? size : (width * height * 2);
+    if (!fmt2rgb888(frame, srcLen, PIXFORMAT_JPEG, rgbBuf)) {
         free(rgbBuf);
         return true;
     }

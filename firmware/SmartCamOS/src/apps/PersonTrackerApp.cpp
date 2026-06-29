@@ -37,11 +37,12 @@ void PersonTrackerApp::update() {
 
     uint8_t* frame = nullptr;
     int width = 0, height = 0;
-    if (!cameraEngine.getFrame(&frame, &width, &height)) return;
+    size_t frameSize = 0;
+    if (!cameraEngine.getFrame(&frame, &width, &height, &frameSize)) return;
 
     IDetector* active = detectionEngine.getActiveDetector();
     if (active) {
-        active->runInference(frame, width, height);
+        active->runInference(frame, width, height, frameSize);
     }
     detectionEngine.update();
 
