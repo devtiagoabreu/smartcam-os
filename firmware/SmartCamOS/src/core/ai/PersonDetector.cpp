@@ -7,14 +7,16 @@ PersonDetector::PersonDetector()
     : m_resultCount(0)
     , m_loaded(false)
     , m_tensorArena(nullptr)
-    , m_inputBuffer(nullptr) {}
+    , m_inputBuffer(nullptr)
+    , m_vision(nullptr) {}
 
 PersonDetector::PersonDetector(const PersonDetectorConfig& config)
     : m_config(config)
     , m_resultCount(0)
     , m_loaded(false)
     , m_tensorArena(nullptr)
-    , m_inputBuffer(nullptr) {}
+    , m_inputBuffer(nullptr)
+    , m_vision(nullptr) {}
 
 PersonDetector::~PersonDetector() {
     unloadModel();
@@ -148,9 +150,43 @@ bool PersonDetector::runInference(uint8_t* frame, int width, int height) {
         m_resultCount = 1;
     }
 #else
-    (void)frame;
-    (void)width;
-    (void)height;
+    if (!m_vision) {
+        m_vision = new VisionEngine();
+        if (!m_vision || !m_vision->begin()) {
+            delete m_vision;
+            m_vision = nullptr;
+            return true;
+        }
+    }
+
+    Frame f;
+    f.data = frame;
+    f.width = width;
+    f.height = height;
+    f.bytesPerPixel = 2;
+
+    m_vision->toGrayscale(f);
+
+    m_vision->threshold(f, 60, 255);
+
+    Blob blobs[16];
+    int blobCount = m_vision->findBlobs(f, blobs, 16);
+
+    for (int i = 0; i < blobCount && m_resultCount < 8; i++) {
+        float areaRatio = blobs[i].area / (width * height);
+        if (areaRatio < 0.005f) continue;
+
+        Detection& d = m_results[m_resultCount];
+        d.x = blobs[i].x / width;
+        d.y = blobs[i].y / height;
+        d.width = blobs[i].width / width;
+        d.height = blobs[i].height / height;
+        d.confidence = areaRatio > 1.0f ? 1.0f : areaRatio;
+        d.classId = 1;
+        strncpy(d.label, m_config.label, sizeof(d.label) - 1);
+        d.label[sizeof(d.label) - 1] = '\0';
+        m_resultCount++;
+    }
 #endif
 
     return true;
@@ -179,6 +215,11 @@ void PersonDetector::unloadModel() {
     if (m_inputBuffer) {
         free(m_inputBuffer);
         m_inputBuffer = nullptr;
+    }
+    if (m_vision) {
+        m_vision->stop();
+        delete m_vision;
+        m_vision = nullptr;
     }
     m_resultCount = 0;
     m_loaded = false;

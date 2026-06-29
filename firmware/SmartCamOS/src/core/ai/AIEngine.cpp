@@ -139,6 +139,11 @@ IDetector* DetectionEngine::getDetector(const char* name) {
     return nullptr;
 }
 
+IDetector* DetectionEngine::getActiveDetector() const {
+    if (m_activeIndex < 0 || m_activeIndex >= m_detectorCount) return nullptr;
+    return m_detectors[m_activeIndex].detector;
+}
+
 bool DetectionEngine::setActiveDetector(const char* name) {
     if (!name) return false;
 

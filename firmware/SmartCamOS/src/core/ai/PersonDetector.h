@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include "../../sdk/interfaces/IDetector.h"
+#include "../vision/VisionEngine.h"
 
 struct PersonDetectorConfig {
     float confidenceThreshold;
@@ -40,6 +41,7 @@ private:
     bool m_loaded;
     uint8_t* m_tensorArena;
     uint8_t* m_inputBuffer;
+    VisionEngine* m_vision;
 
     void preprocessFrame(uint8_t* frame, int width, int height);
     int argmax(const float* scores, int n) const;

@@ -40,6 +40,10 @@ void PersonTrackerApp::update() {
     int width = 0, height = 0;
     if (!cameraEngine.getFrame(&frame, &width, &height)) return;
 
+    IDetector* active = detectionEngine.getActiveDetector();
+    if (active) {
+        active->runInference(frame, width, height);
+    }
     detectionEngine.update();
 
     Detection detections[8];

@@ -35,6 +35,7 @@ public:
     bool registerDetector(const char* name, IDetector* detector);
     bool unregisterDetector(const char* name);
     IDetector* getDetector(const char* name);
+    IDetector* getActiveDetector() const;
     bool setActiveDetector(const char* name);
     int getAllDetections(Detection* out, int maxCount);
 
