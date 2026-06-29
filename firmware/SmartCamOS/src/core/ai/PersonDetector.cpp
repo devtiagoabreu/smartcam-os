@@ -2,6 +2,8 @@
 #include <string.h>
 #include <esp_heap_caps.h>
 #include <math.h>
+#include <esp_camera.h>
+#include <img_converters.h>
 
 PersonDetector::PersonDetector()
     : m_resultCount(0)
@@ -150,44 +152,41 @@ bool PersonDetector::runInference(uint8_t* frame, int width, int height) {
         m_resultCount = 1;
     }
 #else
-    if (!m_vision) {
-        m_vision = new VisionEngine();
-        if (!m_vision || !m_vision->begin()) {
-            delete m_vision;
-            m_vision = nullptr;
-            return true;
-        }
+    int rgbSize = width * height * 3;
+    uint8_t* rgbBuf = (uint8_t*)heap_caps_malloc(rgbSize, MALLOC_CAP_SPIRAM);
+    if (!rgbBuf) {
+        rgbBuf = (uint8_t*)malloc(rgbSize);
+    }
+    if (!rgbBuf) return true;
+
+    if (!fmt2rgb888(frame, width * height * 2, PIXFORMAT_JPEG, rgbBuf)) {
+        free(rgbBuf);
+        return true;
     }
 
-    Frame f;
-    f.data = frame;
-    f.width = width;
-    f.height = height;
-    f.bytesPerPixel = 2;
-
-    m_vision->toGrayscale(f);
-
-    uint8_t* gray = m_vision->getWorkingBuffer();
     int pixels = width * height;
-
     int sum = 0;
     for (int i = 0; i < pixels; i++) {
-        sum += gray[i];
+        uint8_t r = rgbBuf[i * 3];
+        uint8_t g = rgbBuf[i * 3 + 1];
+        uint8_t b = rgbBuf[i * 3 + 2];
+        sum += (r * 77 + g * 150 + b * 29) >> 8;
     }
     int mean = sum / pixels;
 
-    int brightCount = 0;
-    int darkCount = 0;
+    int above = 0;
     for (int i = 0; i < pixels; i++) {
-        if (gray[i] > mean + 20) brightCount++;
-        if (gray[i] < mean - 20) darkCount++;
+        uint8_t r = rgbBuf[i * 3];
+        uint8_t g = rgbBuf[i * 3 + 1];
+        uint8_t b = rgbBuf[i * 3 + 2];
+        int gray = (r * 77 + g * 150 + b * 29) >> 8;
+        if (gray > mean + 20 || gray < mean - 20) above++;
     }
 
-    float brightRatio = (float)brightCount / pixels;
-    float darkRatio = (float)darkCount / pixels;
-    float contentRatio = brightRatio + darkRatio;
+    free(rgbBuf);
 
-    if (contentRatio > 0.08f) {
+    float contentRatio = (float)above / pixels;
+    if (contentRatio > 0.05f) {
         Detection& d = m_results[0];
         d.x = 0.5f;
         d.y = 0.5f;

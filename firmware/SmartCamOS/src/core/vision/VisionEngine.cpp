@@ -4,7 +4,7 @@
 
 static VisionEngine* s_instance = nullptr;
 
-static const int MAX_WORK_SIZE = 640 * 480 * 3; // VGA para RGB565 (×3 para HSV)
+static const int MAX_WORK_SIZE = 320 * 240; // QVGA
 
 VisionEngine::VisionEngine()
     : m_workBuffer(nullptr)

@@ -1,6 +1,5 @@
 #include "CameraEngine.h"
 #include <esp_camera.h>
-#include <img_converters.h>
 
 static CameraEngine* s_instance = nullptr;
 
@@ -25,7 +24,7 @@ static camera_config_t buildEspConfig(const CameraPins& pins, const CameraConfig
     c.pin_pwdn = pins.pwdn;
     c.pin_reset = pins.reset;
     c.xclk_freq_hz = config.xclkFreq;
-    c.pixel_format = PIXFORMAT_RGB565;
+    c.pixel_format = PIXFORMAT_JPEG;
     c.frame_size = (framesize_t)config.frameSize;
     c.jpeg_quality = config.jpegQuality;
     c.fb_count = 1;
@@ -99,7 +98,7 @@ void CameraEngine::update() {
     m_frame.size = fb->len;
     m_frame.width = fb->width;
     m_frame.height = fb->height;
-    m_frame.bytesPerPixel = (fb->format == PIXFORMAT_RGB565) ? 2 : (fb->format == PIXFORMAT_GRAYSCALE) ? 1 : 0;
+    m_frame.bytesPerPixel = (fb->format == PIXFORMAT_JPEG) ? 0 : (fb->format == PIXFORMAT_GRAYSCALE) ? 1 : 3;
     m_frame.timestamp = millis();
 
     for (int i = 0; i < m_processorCount; i++) {
@@ -176,7 +175,7 @@ bool CameraEngine::captureFrame() {
     m_frame.size = fb->len;
     m_frame.width = fb->width;
     m_frame.height = fb->height;
-    m_frame.bytesPerPixel = (fb->format == PIXFORMAT_RGB565) ? 2 : (fb->format == PIXFORMAT_GRAYSCALE) ? 1 : 0;
+    m_frame.bytesPerPixel = (fb->format == PIXFORMAT_JPEG) ? 0 : (fb->format == PIXFORMAT_GRAYSCALE) ? 1 : 3;
     m_frame.timestamp = millis();
 
     return true;

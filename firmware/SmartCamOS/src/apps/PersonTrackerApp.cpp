@@ -3,7 +3,6 @@
 #include <esp_timer.h>
 
 extern CameraEngine cameraEngine;
-extern VisionEngine visionEngine;
 extern DetectionEngine detectionEngine;
 extern TrackingEngine trackingEngine;
 extern LoggerService loggerService;
@@ -62,18 +61,6 @@ void PersonTrackerApp::update() {
 
     trackingEngine.update();
 
-    if (count > 0) {
-        Frame f;
-        f.data = frame;
-        f.width = width;
-        f.height = height;
-        f.bytesPerPixel = 2;
-
-        for (int i = 0; i < count; i++) {
-            uint16_t color = trackingEngine.isTargetLocked() ? 0x07E0 : 0xFFE0;
-            visionEngine.drawOverlay(f, detections[i], color);
-        }
-    }
     cameraEngine.returnFrame();
 
     m_frameCount++;
