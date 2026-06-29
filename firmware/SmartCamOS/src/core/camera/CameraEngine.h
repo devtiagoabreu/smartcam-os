@@ -26,7 +26,7 @@ struct CameraPins {
 
 struct CameraConfig {
     int xclkFreq = 20000000;
-    int frameSize = 10;
+    int frameSize = 4;
     int jpegQuality = 12;
     int fbCount = 1;
     int gmacSize = 0;

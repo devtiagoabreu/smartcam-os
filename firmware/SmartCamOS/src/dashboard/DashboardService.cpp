@@ -10,6 +10,7 @@
 #include "../core/tracking/TrackingEngine.h"
 #include "../apps/PersonTrackerApp.h"
 #include <esp_camera.h>
+#include <img_converters.h>
 #include <WiFi.h>
 #include <esp_heap_caps.h>
 #include <esp_camera.h>
@@ -932,14 +933,23 @@ void DashboardService::handleCameraStream() {
             continue;
         }
 
+        uint8_t* jpgBuf = nullptr;
+        size_t jpgLen = 0;
+        if (!fmt2jpg(fb->buf, fb->len, fb->width, fb->height, PIXFORMAT_RGB565, 12, &jpgBuf, &jpgLen) || !jpgBuf) {
+            esp_camera_fb_return(fb);
+            delay(10);
+            continue;
+        }
+        esp_camera_fb_return(fb);
+
         char partHeader[128];
         int phLen = snprintf(partHeader, sizeof(partHeader),
             "\r\n--%s\r\nContent-Type: image/jpeg\r\nContent-Length: %u\r\n\r\n",
-            boundary, fb->len);
+            boundary, jpgLen);
 
         apiServer.streamChunk((uint8_t*)partHeader, phLen);
-        apiServer.streamChunk(fb->buf, fb->len);
-        esp_camera_fb_return(fb);
+        apiServer.streamChunk(jpgBuf, jpgLen);
+        free(jpgBuf);
     }
 
     char trailer[32];
