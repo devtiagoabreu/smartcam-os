@@ -41,6 +41,8 @@ private:
     bool m_loaded;
     uint8_t* m_tensorArena;
     uint8_t* m_inputBuffer;
+    uint8_t* m_rgbBuf;
+    int m_rgbBufSize;
     VisionEngine* m_vision;
 
     void preprocessFrame(uint8_t* frame, int width, int height);

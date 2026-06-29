@@ -10,6 +10,8 @@ PersonDetector::PersonDetector()
     , m_loaded(false)
     , m_tensorArena(nullptr)
     , m_inputBuffer(nullptr)
+    , m_rgbBuf(nullptr)
+    , m_rgbBufSize(0)
     , m_vision(nullptr) {}
 
 PersonDetector::PersonDetector(const PersonDetectorConfig& config)
@@ -18,6 +20,8 @@ PersonDetector::PersonDetector(const PersonDetectorConfig& config)
     , m_loaded(false)
     , m_tensorArena(nullptr)
     , m_inputBuffer(nullptr)
+    , m_rgbBuf(nullptr)
+    , m_rgbBufSize(0)
     , m_vision(nullptr) {}
 
 PersonDetector::~PersonDetector() {
@@ -154,29 +158,32 @@ bool PersonDetector::runInference(uint8_t* frame, int width, int height, size_t 
 #else
     size_t srcLen = size ? size : (width * height * 2);
 
-    int step = 1;
-    while ((width / step) * (height / step) > 320 * 240) {
-        step++;
+    bool detected = false;
+    float confidence = 0.0f;
+
+    int needSize = width * height * 3;
+    if (needSize != m_rgbBufSize) {
+        if (m_rgbBuf) {
+            free(m_rgbBuf);
+            m_rgbBuf = nullptr;
+            m_rgbBufSize = 0;
+        }
+        m_rgbBuf = (uint8_t*)heap_caps_malloc(needSize, MALLOC_CAP_SPIRAM);
+        if (m_rgbBuf) {
+            m_rgbBufSize = needSize;
+        }
     }
 
-    int fullSize = width * height * 3;
-    uint8_t* rgbBuf = (uint8_t*)heap_caps_malloc(fullSize, MALLOC_CAP_SPIRAM);
-    if (!rgbBuf) {
-        rgbBuf = (uint8_t*)malloc(fullSize);
-    }
+    if (m_rgbBuf && fmt2rgb888(frame, srcLen, PIXFORMAT_JPEG, m_rgbBuf)) {
+        int step = 1;
+        while ((width / step) * (height / step) > 320 * 240) step++;
 
-    bool decoded = false;
-    if (rgbBuf) {
-        decoded = fmt2rgb888(frame, srcLen, PIXFORMAT_JPEG, rgbBuf);
-    }
-
-    if (decoded) {
         int sampleCount = 0;
         unsigned long long sum = 0;
         for (int y = 0; y < height; y += step) {
             for (int x = 0; x < width; x += step) {
                 int idx = (y * width + x) * 3;
-                sum += (rgbBuf[idx] * 77 + rgbBuf[idx + 1] * 150 + rgbBuf[idx + 2] * 29) >> 8;
+                sum += (m_rgbBuf[idx] * 77 + m_rgbBuf[idx + 1] * 150 + m_rgbBuf[idx + 2] * 29) >> 8;
                 sampleCount++;
             }
         }
@@ -186,43 +193,37 @@ bool PersonDetector::runInference(uint8_t* frame, int width, int height, size_t 
         for (int y = 0; y < height; y += step) {
             for (int x = 0; x < width; x += step) {
                 int idx = (y * width + x) * 3;
-                int gray = (rgbBuf[idx] * 77 + rgbBuf[idx + 1] * 150 + rgbBuf[idx + 2] * 29) >> 8;
+                int gray = (m_rgbBuf[idx] * 77 + m_rgbBuf[idx + 1] * 150 + m_rgbBuf[idx + 2] * 29) >> 8;
                 if (gray > mean + 20 || gray < mean - 20) above++;
             }
         }
 
-        free(rgbBuf);
-
         float contentRatio = (float)above / sampleCount;
-        if (contentRatio > 0.10f) {
-            Detection& d = m_results[0];
-            d.x = 0.5f;
-            d.y = 0.5f;
-            d.width = 1.0f;
-            d.height = 1.0f;
-            d.confidence = contentRatio > 1.0f ? 1.0f : contentRatio;
-            d.classId = 1;
-            strncpy(d.label, m_config.label, sizeof(d.label) - 1);
-            d.label[sizeof(d.label) - 1] = '\0';
-            m_resultCount = 1;
+        if (contentRatio > 0.05f) {
+            detected = true;
+            confidence = contentRatio > 1.0f ? 1.0f : contentRatio;
         }
-    } else {
-        if (rgbBuf) free(rgbBuf);
-        if (srcLen > 25000) {
-            Detection& d = m_results[0];
-            d.x = 0.5f;
-            d.y = 0.5f;
-            d.width = 1.0f;
-            d.height = 1.0f;
-            float confidence = (srcLen - 25000) / 75000.0f;
-            if (confidence < 0.2f) confidence = 0.2f;
-            if (confidence > 0.8f) confidence = 0.8f;
-            d.confidence = confidence;
-            d.classId = 1;
-            strncpy(d.label, m_config.label, sizeof(d.label) - 1);
-            d.label[sizeof(d.label) - 1] = '\0';
-            m_resultCount = 1;
-        }
+    }
+
+    if (!detected && srcLen > 8000) {
+        detected = true;
+        float excess = (float)(srcLen - 8000);
+        confidence = excess / 72000.0f;
+        if (confidence < 0.15f) confidence = 0.15f;
+        if (confidence > 0.80f) confidence = 0.80f;
+    }
+
+    if (detected) {
+        Detection& d = m_results[0];
+        d.x = 0.5f;
+        d.y = 0.5f;
+        d.width = 1.0f;
+        d.height = 1.0f;
+        d.confidence = confidence;
+        d.classId = 1;
+        strncpy(d.label, m_config.label, sizeof(d.label) - 1);
+        d.label[sizeof(d.label) - 1] = '\0';
+        m_resultCount = 1;
     }
 #endif
 
@@ -252,6 +253,11 @@ void PersonDetector::unloadModel() {
     if (m_inputBuffer) {
         free(m_inputBuffer);
         m_inputBuffer = nullptr;
+    }
+    if (m_rgbBuf) {
+        free(m_rgbBuf);
+        m_rgbBuf = nullptr;
+        m_rgbBufSize = 0;
     }
     if (m_vision) {
         m_vision->stop();
