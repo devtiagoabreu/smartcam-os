@@ -167,25 +167,37 @@ bool PersonDetector::runInference(uint8_t* frame, int width, int height) {
 
     m_vision->toGrayscale(f);
 
-    m_vision->threshold(f, 60, 255);
+    uint8_t* gray = m_vision->getWorkingBuffer();
+    int pixels = width * height;
 
-    Blob blobs[16];
-    int blobCount = m_vision->findBlobs(f, blobs, 16);
+    int sum = 0;
+    for (int i = 0; i < pixels; i++) {
+        sum += gray[i];
+    }
+    int mean = sum / pixels;
 
-    for (int i = 0; i < blobCount && m_resultCount < 8; i++) {
-        float areaRatio = blobs[i].area / (width * height);
-        if (areaRatio < 0.005f) continue;
+    int brightCount = 0;
+    int darkCount = 0;
+    for (int i = 0; i < pixels; i++) {
+        if (gray[i] > mean + 20) brightCount++;
+        if (gray[i] < mean - 20) darkCount++;
+    }
 
-        Detection& d = m_results[m_resultCount];
-        d.x = blobs[i].x / width;
-        d.y = blobs[i].y / height;
-        d.width = blobs[i].width / width;
-        d.height = blobs[i].height / height;
-        d.confidence = areaRatio > 1.0f ? 1.0f : areaRatio;
+    float brightRatio = (float)brightCount / pixels;
+    float darkRatio = (float)darkCount / pixels;
+    float contentRatio = brightRatio + darkRatio;
+
+    if (contentRatio > 0.08f) {
+        Detection& d = m_results[0];
+        d.x = 0.5f;
+        d.y = 0.5f;
+        d.width = 1.0f;
+        d.height = 1.0f;
+        d.confidence = contentRatio > 1.0f ? 1.0f : contentRatio;
         d.classId = 1;
         strncpy(d.label, m_config.label, sizeof(d.label) - 1);
         d.label[sizeof(d.label) - 1] = '\0';
-        m_resultCount++;
+        m_resultCount = 1;
     }
 #endif
 
