@@ -3,6 +3,7 @@
 #include <esp_timer.h>
 
 extern CameraEngine cameraEngine;
+extern VisionEngine visionEngine;
 extern DetectionEngine detectionEngine;
 extern TrackingEngine trackingEngine;
 extern LoggerService loggerService;
