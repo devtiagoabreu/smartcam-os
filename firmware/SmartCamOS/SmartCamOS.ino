@@ -221,6 +221,7 @@ void setupCore()     { /* Core scheduler and state manager - Sprint 3 */ }
 void setupCamera()   {
     cameraEngine.setPins(CameraPins());
     if (cameraEngine.begin()) {
+        cameraEngine.startStream();
         loggerService.info("Camera", "Camera initialized (JPEG+PSRAM, fb=1, LATEST)");
     } else {
         loggerService.warning("Camera", "Camera init failed — check pinout or power");
