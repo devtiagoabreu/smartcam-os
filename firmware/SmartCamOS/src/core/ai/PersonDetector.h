@@ -27,7 +27,7 @@ public:
     ~PersonDetector();
 
     bool loadModel() override;
-    bool runInference(uint8_t* frame, int width, int height) override;
+    bool runInference(uint8_t* frame, int width, int height, size_t size = 0) override;
     int getDetections(Detection* out, int maxCount) override;
     void unloadModel() override;
 

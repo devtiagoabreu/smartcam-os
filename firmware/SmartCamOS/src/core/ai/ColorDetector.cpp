@@ -25,7 +25,8 @@ bool ColorDetector::loadModel() {
     return true;
 }
 
-bool ColorDetector::runInference(uint8_t* frame, int width, int height) {
+bool ColorDetector::runInference(uint8_t* frame, int width, int height, size_t size) {
+    (void)size;
     if (!m_loaded || !frame) return false;
 
     if (!m_vision) {
